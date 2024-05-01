@@ -1,3 +1,5 @@
+const queueButton = document.querySelector('.queue-btn');
+
 // Fetch the CSV file
 fetch('static/TopSongs.csv')
     .then(response => response.text())
@@ -18,3 +20,27 @@ fetch('static/TopSongs.csv')
     .catch(error => {
         console.error('Error:', error);
     });
+
+
+
+queueButton.addEventListener('click', function() {
+    const selectedSong = searchBar.value;
+    if (selectedSong) {
+        fetch('/queue_add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ song: selectedSong })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            // Optionally, you can display a success message to the user
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Optionally, you can display an error message to the user
+        });
+    }
+});
