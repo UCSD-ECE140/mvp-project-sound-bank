@@ -7,9 +7,12 @@ fetch('static/TopSongs.csv')
         
         // Populate the datalist with music suggestions
         musicData.forEach(music => {
-            const option = document.createElement('option');
-            option.value = music;
-            datalist.appendChild(option);
+            const [_, artist, songName, year] = music.split(',');
+            if (artist && songName && year) {
+                const option = document.createElement('option');
+                option.value = `${artist} - ${songName} (${year})`;
+                datalist.appendChild(option);
+            }
         });
     })
     .catch(error => {
