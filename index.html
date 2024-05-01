@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Landing Page</title>
     <link rel="stylesheet" href="static/styles.css">
+    <script src="static/queue.js"></script>
+
 </head>
 <body>
     <header>
         <button class="upload-btn">Upload Music</button>
     </header>
     <div class="search-container">
-        <input type="text" class="search-bar" placeholder="Search...">
+        <input type="text" class="search-bar" placeholder="Search..." list="music-suggestions">
+        <datalist id="music-suggestions"></datalist>
         <button class="queue-btn">Queue to Soundbank</button>
     </div>
 </body>
