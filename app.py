@@ -2,7 +2,6 @@ from fastapi import FastAPI, WebSocket, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import uvicorn
-from rktellolib import Tello
 import json
 import paho.mqtt.client as paho
 from paho import mqtt

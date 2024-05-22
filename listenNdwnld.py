@@ -6,7 +6,7 @@ from moviepy.editor import *
 import os
 
 # Path to save the downloaded files
-download_path = r'C:\Users\maxdg\PycharmProjects\luhSoundbank'
+download_path = r'C:\Users\Nehemiah Skandera\Desktop\ECE140B\Spotipy\mvp-project-sound-bank\SoundBankFiles'
 
 def on_connect(client, userdata, flags, rc, properties=None):
     """
@@ -82,3 +82,4 @@ client3.on_message = on_message
 client3.subscribe("music/#", qos=0)
 
 client3.loop_forever()  # This will block and continuously listen for incoming messages
+
