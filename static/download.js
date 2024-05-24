@@ -4,21 +4,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("queueButton")
 
 
-    function populateMusicList(musicData) {
-        const musicList = document.getElementById('music-list');
-        musicList.innerHTML = '';
-    
-        musicData.forEach(music => {
-            const [_, artist, songName, year] = music.split(',');
-            if (artist && songName && year) {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${artist} - ${songName} (${year})`;
-                musicList.appendChild(listItem);
-            }
-        });
-    }
-
-
     // Fetch the CSV file
     fetch('static/TopSongs.csv')
         .then(response => response.text())
@@ -35,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     datalist.appendChild(option);
                 }
             });
-            populateMusicList(musicData);
         })
         .catch(error => {
             console.error('Error:', error);

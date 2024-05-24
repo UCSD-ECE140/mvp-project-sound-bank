@@ -68,6 +68,13 @@ async def get():
     with open('index.html', 'r') as file:
         return HTMLResponse(file.read())
     
+
+@app.get("/queuepage")
+async def redirect():
+    with open('queue.html', 'r') as file:
+        return HTMLResponse(file.read())
+    
+    
 @app.post("/queue_add")
 async def queue_add(request: Request):
     data = await request.json()
