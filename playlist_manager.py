@@ -9,7 +9,7 @@ from paho import mqtt
 load_dotenv()
 
 # Path to the directory containing the songs
-songs_directory = r'C:\Users\Nehemiah Skandera\Desktop\ECE140B\Spotipy\mvp-project-sound-bank\SoundBankFiles'
+songs_directory = r'SoundBankFiles'
 # Path to the playlists file
 playlists_file = 'playlists.json'
 
