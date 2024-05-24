@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 import uvicorn
 import json
 import paho.mqtt.client as paho
@@ -8,62 +8,60 @@ from paho import mqtt
 from dotenv import load_dotenv
 import os
 
+
 app = FastAPI()
 app.mount('/static', StaticFiles(directory='static'), name='static')
 
+
+
 def on_connect(client, userdata, flags, rc, properties=None):
     """
-    Prints the result of the connection with a reason code to stdout (used as callback for connect).
-    :param client: the client itself
-    :param userdata: userdata is set when initiating the client, here it is userdata=None
-    :param flags: these are response flags sent by the broker
-    :param rc: stands for reasonCode, which is a code for the connection result
-    :param properties: can be used in MQTTv5, but is optional
+        Prints the result of the connection with a reasoncode to stdout ( used as callback for connect )
+        :param client: the client itself
+        :param userdata: userdata is set when initiating the client, here it is userdata=None
+        :param flags: these are response flags sent by the broker
+        :param rc: stands for reasonCode, which is a code for the connection result
+        :param properties: can be used in MQTTv5, but is optional
     """
     print("CONNACK received with code %s." % rc)
 
 def on_message(client, userdata, msg):
-    """
-    Prints a mqtt message to stdout (used as callback for subscribe).
-    :param client: the client itself
-    :param userdata: userdata is set when initiating the client, here it is userdata=None
-    :param msg: the message with topic and payload
-    """
     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
 
-# With this callback you can see if your publish was successful
+
+# with this callback you can see if your publish was successful
 def on_publish(client, userdata, mid, properties=None):
     """
-    Prints mid to stdout to reassure a successful publish (used as callback for publish).
-    :param client: the client itself
-    :param userdata: userdata is set when initiating the client, here it is userdata=None
-    :param mid: variable returned from the corresponding publish() call, to allow outgoing messages to be tracked
-    :param properties: can be used in MQTTv5, but is optional
+        Prints mid to stdout to reassure a successful publish ( used as callback for publish )
+        :param client: the client itself
+        :param userdata: userdata is set when initiating the client, here it is userdata=None
+        :param mid: variable returned from the corresponding publish() call, to allow outgoing messages to be tracked
+        :param properties: can be used in MQTTv5, but is optional
     """
     print("mid: " + str(mid))
 
-# Print which topic was subscribed to
 def on_subscribe(client, userdata, mid, granted_qos, properties=None):
     """
-    Prints a reassurance for successfully subscribing.
-    :param client: the client itself
-    :param userdata: userdata is set when initiating the client, here it is userdata=None
-    :param mid: variable returned from the corresponding publish() call, to allow outgoing messages to be tracked
-    :param granted_qos: this is the qos that you declare when subscribing, use the same one for publishing
-    :param properties: can be used in MQTTv5, but is optional
+        Prints a reassurance for successfully subscribing
+        :param client: the client itself
+        :param userdata: userdata is set when initiating the client, here it is userdata=None
+        :param mid: variable returned from the corresponding publish() call, to allow outgoing messages to be tracked
+        :param granted_qos: this is the qos that you declare when subscribing, use the same one for publishing
+        :param properties: can be used in MQTTv5, but is optional
     """
     print("Subscribed: " + str(mid) + " " + str(granted_qos))
 
-@app.get("/playlists")
-async def get_playlists():
-    # Load existing playlists from the JSON file
-    playlists_file = 'playlists.json'
-    if os.path.exists(playlists_file):
-        with open(playlists_file, 'r') as file:
-            playlists = json.load(file)
-            return JSONResponse(content=list(playlists.keys()))
-    else:
-        return JSONResponse(content=[])
+def on_message(client, userdata, msg):
+    """
+        Prints a mqtt message to stdout ( used as callback for subscribe )
+        :param client: the client itself
+        :param userdata: userdata is set when initiating the client, here it is userdata=None
+        :param msg: the message with topic and payload
+    """
+    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+
+
+
 
 @app.get("/")
 async def get():
@@ -73,17 +71,17 @@ async def get():
 @app.post("/queue_add")
 async def queue_add(request: Request):
     data = await request.json()
-    playlist = data.get("playlist")
     song = data.get("song")
-    print(f"Received request to add song: {song} to playlist: {playlist}")
+    print(song)
     
-    if playlist and song:
-        # Format the message as required: '"playlist", "song name"'
-        formatted_message = f'"{playlist}", "{song}"'
-        client.publish("songs/add", payload=formatted_message, qos=1)
-        return {"message": f"Song '{song}' added to the playlist '{playlist}'"}
+    if song:
+        client.publish("songs/add", payload=song, qos=1)
+        return {"message": "Song added to the queue"}
     else:
-        return {"message": "Playlist or song not provided"}
+        return {"message": "No song provided"}
+
+
+
 
 if __name__ == '__main__':
     load_dotenv()
@@ -95,28 +93,32 @@ if __name__ == '__main__':
     username = os.environ.get('USER_NAME')
     password = os.environ.get('PASSWORD')
 
-    # Enable TLS for secure connection
+    
+
+
+    # enable TLS for secure connection
     client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
-    # Set username and password
+    # set username and password
     client.username_pw_set(username, password)
-    # Connect to HiveMQ Cloud on port 8883 (default for MQTT)
+    # connect to HiveMQ Cloud on port 8883 (default for MQTT)
     client.connect(broker_address, broker_port)
 
     client_sub = paho.Client(callback_api_version=paho.CallbackAPIVersion.VERSION1, client_id="", userdata=None, protocol=paho.MQTTv5)
     client_sub.on_connect = on_connect
 
-    # Enable TLS for secure connection
+     # enable TLS for secure connection
     client_sub.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
-    # Set username and password
+    # set username and password
     client_sub.username_pw_set(username, password)
-    # Connect to HiveMQ Cloud on port 8883 (default for MQTT)
+    # connect to HiveMQ Cloud on port 8883 (default for MQTT)
     client_sub.connect(broker_address, broker_port)
 
     client_sub.on_message = on_message
     client_sub.on_publish = on_publish
 
-    # Subscribe to all topics of numbers by using the wildcard "#"
+    # subscribe to all topics of numbers by using the wildcard "#"
     client_sub.subscribe("songs/#", qos=1)
+
 
     client_sub.loop_start()
 
