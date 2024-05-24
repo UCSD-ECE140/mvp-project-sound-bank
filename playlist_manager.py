@@ -1,6 +1,12 @@
 import os
 import json
+from dotenv import load_dotenv
+import paho.mqtt.client as paho
 from pytube import Search, YouTube
+from paho import mqtt
+
+# Load .env variables
+load_dotenv()
 
 # Path to the directory containing the songs
 songs_directory = r'C:\Users\Nehemiah Skandera\Desktop\ECE140B\Spotipy\mvp-project-sound-bank\SoundBankFiles'
@@ -41,26 +47,46 @@ def download_song(song_query):
         return song_path
     return None
 
-# Function to handle instruction strings
-def handle_instruction(instruction):
+def on_connect(client, userdata, flags, rc, properties=None):
+    print("CONNACK received with code %s." % rc)
+    client.subscribe("songs/add")
+
+def on_publish(client, userdata, mid, properties=None):
+    print("mid: " + str(mid))
+
+def on_subscribe(client, userdata, mid, granted_qos, properties=None):
+    print("Subscribed: " + str(mid) + " " + str(granted_qos))
+
+def on_message(client, userdata, msg):
+    payload = msg.payload.decode('utf-8')
     try:
-        playlist_name, song_title = instruction.split('", "')
+        playlist_name, song_title = payload.split(', ')
         playlist_name = playlist_name.strip('"')
         song_title = song_title.strip('"')
         song_path = os.path.join(songs_directory, song_title + ".mp4")
-        
         if not os.path.exists(song_path):
             print(f"Song '{song_title}' not found locally. Downloading...")
             song_path = download_song(song_title)
-        
-        if song_path:
-            add_song_to_playlist(playlist_name, song_path)
-        else:
-            print(f"Failed to download song '{song_title}'.")
+        add_song_to_playlist(playlist_name, song_path)
     except ValueError:
-        print("Invalid instruction format. Use '\"PlaylistName\", \"SongTitle\"'.")
+        print("Invalid instruction format. Use '\"PlaylistName\", \"SongTitle\".'")
 
-# Example usage: Add song to playlist based on instruction string
-if __name__ == "__main__":
-    instruction = '"Classic", "Emanuel Andrea Bocelli"'
-    handle_instruction(instruction)
+if __name__ == '__main__':
+    load_dotenv()
+
+    broker_address = os.environ.get('BROKER_ADDRESS')
+    broker_port = int(os.environ.get('BROKER_PORT'))
+    username = os.environ.get('USER_NAME')
+    password = os.environ.get('PASSWORD')
+
+    client = paho.Client(callback_api_version=paho.CallbackAPIVersion.VERSION1, client_id="", userdata=None, protocol=paho.MQTTv5)
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.on_publish = on_publish
+    client.on_subscribe = on_subscribe
+
+    client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
+    client.username_pw_set(username, password)
+    client.connect(broker_address, broker_port)
+
+    client.loop_forever()
