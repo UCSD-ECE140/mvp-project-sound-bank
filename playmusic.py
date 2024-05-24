@@ -83,7 +83,7 @@ def handle_instruction(instruction):
         print("Invalid instruction format. Use '\"PlaylistName\", \"SongTitle\"'.")
 
 # Example usage: Add song to playlist based on instruction string
-instruction = '"Pop", "Emanuel Andrea Bocelli"'
+instruction = '"Classical", "Emanuel Andrea Bocelli"'
 handle_instruction(instruction)
 
 # Example usage: play songs from the "Pop" playlist

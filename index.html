@@ -6,16 +6,46 @@
     <title>Music Landing Page</title>
     <link rel="stylesheet" href="static/styles.css">
     <script src="static/queue.js"></script>
-
+    <script src="static/playlist.js"></script>
 </head>
 <body>
     <header>
         <button class="upload-btn">Upload Music</button>
     </header>
+    <div class="playlist-container">
+        <label for="playlist-select">Select Playlist:</label>
+        <select id="playlist-select" class="playlist-select">
+            <!-- JavaScript will populate this with user-created playlists -->
+        </select>
+    </div>
     <div class="search-container">
         <input type="text" id="search-input" class="search-bar" placeholder="Search..." list="music-suggestions">
         <datalist id="music-suggestions"></datalist>
         <button class="queue-btn" id="queue-btn">Queue to Soundbank</button>
     </div>
+
+    <script>
+        // Function to fetch user-created playlists and populate the select element
+        function populatePlaylists() {
+            fetch('/playlists') // Endpoint to fetch user-created playlists
+                .then(response => response.json())
+                .then(data => {
+                    const playlistSelect = document.getElementById('playlist-select');
+                    data.forEach(playlist => {
+                        const option = document.createElement('option');
+                        option.value = playlist;
+                        playlistSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching playlists:', error);
+                });
+        }
+
+        // Call the populatePlaylists function when the page is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            populatePlaylists();
+        });
+    </script>
 </body>
 </html>
