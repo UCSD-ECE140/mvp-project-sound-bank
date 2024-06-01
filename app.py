@@ -54,14 +54,26 @@ def on_subscribe(client, userdata, mid, granted_qos, properties=None):
     """
     print("Subscribed: " + str(mid) + " " + str(granted_qos))
 
+def initialize_playlists_file(file_path):
+    if not os.path.exists(file_path):
+        with open(file_path, 'w') as file:
+            json.dump({}, file)
+    elif os.stat(file_path).st_size == 0:
+        with open(file_path, 'w') as file:
+            json.dump({}, file)
+
 @app.get("/playlists")
 async def get_playlists():
     # Load existing playlists from the JSON file
     playlists_file = 'playlists.json'
+    initialize_playlists_file(playlists_file)
     if os.path.exists(playlists_file):
         with open(playlists_file, 'r') as file:
-            playlists = json.load(file)
-            return JSONResponse(content=list(playlists.keys()))
+            try:
+                playlists = json.load(file)
+                return JSONResponse(content=list(playlists.keys()))
+            except json.JSONDecodeError:
+                return JSONResponse(content=[])
     else:
         return JSONResponse(content=[])
 
@@ -69,7 +81,7 @@ async def get_playlists():
 async def get():
     with open('index.html', 'r') as file:
         return HTMLResponse(file.read())
-
+    
 @app.post("/queue_add")
 async def queue_add(request: Request):
     data = await request.json()
@@ -114,7 +126,6 @@ if __name__ == '__main__':
 
     client_sub.on_message = on_message
     client_sub.on_publish = on_publish
-    client_sub.on_subscribe = on_subscribe
 
     # Subscribe to all topics of numbers by using the wildcard "#"
     client_sub.subscribe("songs/#", qos=1)

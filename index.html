@@ -26,18 +26,21 @@
     </div>
 
     <script>
-        // Function to fetch user-created playlists and populate the select element
         function populatePlaylists() {
-            fetch('/playlists') // Endpoint to fetch user-created playlists
+            fetch('/playlists')
                 .then(response => response.json())
                 .then(data => {
                     const playlistSelect = document.getElementById('playlist-select');
+                    playlistSelect.innerHTML = '';  // Clear existing options
+                    const existingPlaylists = new Set();
+
                     data.forEach(playlist => {
-                        if (!Array.from(playlistSelect.options).some(option => option.value === playlist)) {
+                        if (!existingPlaylists.has(playlist)) {
                             const option = document.createElement('option');
                             option.value = playlist;
                             option.textContent = playlist;
                             playlistSelect.appendChild(option);
+                            existingPlaylists.add(playlist);
                         }
                     });
                 })
@@ -46,17 +49,18 @@
                 });
         }
 
-        // Event listener for the "New Playlist" button
         document.getElementById('new-playlist-btn').addEventListener('click', () => {
             const newPlaylistName = prompt("Enter new playlist name:");
             if (newPlaylistName) {
                 const playlistSelect = document.getElementById('playlist-select');
-                if (!Array.from(playlistSelect.options).some(option => option.value === newPlaylistName)) {
+                const existingPlaylists = new Set(Array.from(playlistSelect.options).map(option => option.value));
+                
+                if (!existingPlaylists.has(newPlaylistName)) {
                     const newOption = document.createElement('option');
                     newOption.value = newPlaylistName;
                     newOption.textContent = newPlaylistName;
                     playlistSelect.appendChild(newOption);
-                    playlistSelect.value = newPlaylistName; // Set the newly created playlist as selected
+                    playlistSelect.value = newPlaylistName;
                 } else {
                     alert("Playlist already exists.");
                 }
@@ -65,7 +69,6 @@
             }
         });
 
-        // Event listener for the "Queue to Soundbank" button
         document.getElementById('queue-btn').addEventListener('click', () => {
             const playlistSelect = document.getElementById('playlist-select');
             const playlist = playlistSelect.value;
@@ -93,7 +96,6 @@
             }
         });
 
-        // Call the populatePlaylists function when the page is loaded
         document.addEventListener('DOMContentLoaded', () => {
             populatePlaylists();
         });
