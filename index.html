@@ -17,6 +17,7 @@
         <select id="playlist-select" class="playlist-select">
             <!-- JavaScript will populate this with user-created playlists -->
         </select>
+        <button id="new-playlist-btn">New Playlist</button>
     </div>
     <div class="search-container">
         <input type="text" id="search-input" class="search-bar" placeholder="Search..." list="music-suggestions">
@@ -32,15 +33,65 @@
                 .then(data => {
                     const playlistSelect = document.getElementById('playlist-select');
                     data.forEach(playlist => {
-                        const option = document.createElement('option');
-                        option.value = playlist;
-                        playlistSelect.appendChild(option);
+                        if (!Array.from(playlistSelect.options).some(option => option.value === playlist)) {
+                            const option = document.createElement('option');
+                            option.value = playlist;
+                            option.textContent = playlist;
+                            playlistSelect.appendChild(option);
+                        }
                     });
                 })
                 .catch(error => {
                     console.error('Error fetching playlists:', error);
                 });
         }
+
+        // Event listener for the "New Playlist" button
+        document.getElementById('new-playlist-btn').addEventListener('click', () => {
+            const newPlaylistName = prompt("Enter new playlist name:");
+            if (newPlaylistName) {
+                const playlistSelect = document.getElementById('playlist-select');
+                if (!Array.from(playlistSelect.options).some(option => option.value === newPlaylistName)) {
+                    const newOption = document.createElement('option');
+                    newOption.value = newPlaylistName;
+                    newOption.textContent = newPlaylistName;
+                    playlistSelect.appendChild(newOption);
+                    playlistSelect.value = newPlaylistName; // Set the newly created playlist as selected
+                } else {
+                    alert("Playlist already exists.");
+                }
+            } else {
+                alert("Playlist name cannot be empty.");
+            }
+        });
+
+        // Event listener for the "Queue to Soundbank" button
+        document.getElementById('queue-btn').addEventListener('click', () => {
+            const playlistSelect = document.getElementById('playlist-select');
+            const playlist = playlistSelect.value;
+            const song = document.getElementById('search-input').value;
+
+            if (playlist && song) {
+                const data = { playlist, song };
+
+                fetch('/queue_add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    alert(result.message);
+                })
+                .catch(error => {
+                    console.error('Error adding song to playlist:', error);
+                });
+            } else {
+                alert("Please provide both a playlist and a song.");
+            }
+        });
 
         // Call the populatePlaylists function when the page is loaded
         document.addEventListener('DOMContentLoaded', () => {
