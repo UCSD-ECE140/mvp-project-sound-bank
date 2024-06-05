@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const queueButton = document.getElementById('queue-btn');
+    const downloadButton = document.getElementById('download-btn');
     const searchInput = document.getElementById('search-input');
     const playlistSelect = document.getElementById('playlist-select'); // New line
 
@@ -18,7 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error('Error fetching playlists:', error);
         });
 
-    queueButton.addEventListener('click', function() {
+    // queueButton.addEventListener('click', function() {
+    downloadButton.addEventListener('click', function() {
         const selectedSong = searchInput.value;
         const selectedPlaylist = playlistSelect.value; // New line
 

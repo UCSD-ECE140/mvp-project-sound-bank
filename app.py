@@ -166,7 +166,6 @@ if __name__ == '__main__':
     # subscribe to all topics of numbers by using the wildcard "#"
     client_sub.subscribe("songs/#", qos=1)
 
-
     client_sub.loop_start()
 
     uvicorn.run(app)

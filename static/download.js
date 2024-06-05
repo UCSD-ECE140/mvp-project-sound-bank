@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const queueButton = document.getElementById('download-btn');
+    const downloadButton = document.getElementById('download-btn');
     const searchInput = document.getElementById('search-input');
     console.log("downloadButton")
 
@@ -23,30 +23,5 @@ document.addEventListener("DOMContentLoaded", () => {
         .catch(error => {
             console.error('Error:', error);
         });
-
-
-
-    queueButton.addEventListener('click', function() {
-        const selectedSong = searchInput.value;
-        console.log(selectedSong)
-        if (selectedSong) {
-            fetch('/download_add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ song: selectedSong })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data.message);
-                // Optionally, you can display a success message to the user
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Optionally, you can display an error message to the user
-            });
-        }
-    });
 
 });
