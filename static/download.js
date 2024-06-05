@@ -1,8 +1,7 @@
-document.addEventListener("DOMContentLoaded", () => {    
-    const queueButton = document.getElementById('queue-btn');
+document.addEventListener("DOMContentLoaded", () => {
+    const queueButton = document.getElementById('download-btn');
     const searchInput = document.getElementById('search-input');
-    console.log("queueButton")
-
+    console.log("downloadButton")
 
     // Fetch the CSV file
     fetch('static/TopSongs.csv')
@@ -31,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedSong = searchInput.value;
         console.log(selectedSong)
         if (selectedSong) {
-            fetch('/queue_add', {
+            fetch('/download_add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -49,7 +48,5 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
     });
-
-    
 
 });

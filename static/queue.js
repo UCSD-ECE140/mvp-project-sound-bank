@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedSong = searchInput.value;
         console.log(selectedSong)
         if (selectedSong) {
-            fetch('/queue_add', {
+            fetch('/post_song', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -65,7 +65,5 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
     });
-
-    
 
 });

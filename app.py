@@ -12,8 +12,6 @@ import os
 app = FastAPI()
 app.mount('/static', StaticFiles(directory='static'), name='static')
 
-
-
 def on_connect(client, userdata, flags, rc, properties=None):
     """
         Prints the result of the connection with a reasoncode to stdout ( used as callback for connect )
@@ -105,20 +103,35 @@ async def redirect():
         return HTMLResponse(file.read())
     
     
-@app.post("/queue_add")
-async def queue_add(request: Request):
+@app.post("/download_add")
+async def download_add(request: Request):
     data = await request.json()
+    print(data)
     playlist = data.get("playlist")
     song = data.get("song")
     print(f"Received request to add song: {song} to playlist: {playlist}")
-    
+
     if playlist and song:
         # Format the message as required: '"playlist", "song name"'
         formatted_message = f'"{playlist}", "{song}"'
+        print(formatted_message)
         client.publish("songs/add", payload=formatted_message, qos=1)
         return {"message": f"Song '{song}' added to the playlist '{playlist}'"}
     else:
         return {"message": "Playlist or song not provided"}
+
+
+@app.post("/queue_add")
+async def queue_add(request: Request):
+    data = await request.json()
+    song = data.get("song")
+    print(song)
+
+    if song:
+        client.publish("songs/add", payload=song, qos=1)
+        return {"message": "Song added to the queue"}
+    else:
+        return {"message": "No song provided"}
 
 if __name__ == '__main__':
     load_dotenv()
