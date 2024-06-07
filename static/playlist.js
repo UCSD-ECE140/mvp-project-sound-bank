@@ -1,8 +1,8 @@
-document.addEventListener("DOMContentLoaded", () => {    
-    const queueButton = document.getElementById('queue-btn');
+document.addEventListener("DOMContentLoaded", () => {
+    const downloadButton = document.getElementById('download-btn');
     const searchInput = document.getElementById('search-input');
     const playlistSelect = document.getElementById('playlist-select'); // New line
-    
+
     // Fetch user-created playlists and populate the dropdown menu
     fetch('/playlists')
         .then(response => response.json())
@@ -18,19 +18,20 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error('Error fetching playlists:', error);
         });
 
-    queueButton.addEventListener('click', function() {
+    // queueButton.addEventListener('click', function() {
+    downloadButton.addEventListener('click', function() {
         const selectedSong = searchInput.value;
         const selectedPlaylist = playlistSelect.value; // New line
-        
+
         if (selectedSong && selectedPlaylist) { // Updated condition
-            fetch('/queue_add', {
+            fetch('/download_add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     playlist: selectedPlaylist, // Updated payload
-                    song: selectedSong 
+                    song: selectedSong
                 })
             })
             .then(response => response.json())

@@ -1,3 +1,4 @@
 myenv
 *.mp4
 playlists.json
+.env
