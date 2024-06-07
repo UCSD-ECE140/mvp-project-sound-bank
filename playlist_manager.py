@@ -10,7 +10,8 @@ import time
 
 
 # Path to the directory containing the songs
-songs_directory = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
+songs_directory = r'SoundBankFiles'
+
 # Path to the playlists file
 playlists_file = 'playlists.json'
 
