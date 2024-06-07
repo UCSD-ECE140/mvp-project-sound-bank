@@ -7,7 +7,7 @@ import paho.mqtt.client as paho
 from paho import mqtt
 from dotenv import load_dotenv
 import os
-
+import time
 
 app = FastAPI()
 app.mount('/static', StaticFiles(directory='static'), name='static')
@@ -95,7 +95,10 @@ def on_message(client, userdata, msg):
 async def get():
     with open('index.html', 'r') as file:
         return HTMLResponse(file.read())
-    
+
+@app.get("/healthy")
+async def healthy():
+    return JSONResponse({"healthy":"maybe"})
 
 @app.get("/queuepage")
 async def redirect():
@@ -129,6 +132,7 @@ async def queue_add(request: Request):
 
     if song:
         client.publish("songs/add", payload=song, qos=1)
+        time.sleep(3)
         return {"message": "Song added to the queue"}
     else:
         return {"message": "No song provided"}
@@ -166,6 +170,10 @@ if __name__ == '__main__':
     # subscribe to all topics of numbers by using the wildcard "#"
     client_sub.subscribe("songs/#", qos=1)
 
+    time.sleep(3)
+
+
     client_sub.loop_start()
 
-    uvicorn.run(app)
+    uvicorn.run(app,host="0.0.0.0", port=8000)
+    #change to 8000 when running locally

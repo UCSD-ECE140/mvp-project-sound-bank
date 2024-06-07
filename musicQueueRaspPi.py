@@ -11,7 +11,7 @@ broker_address = os.getenv('BROKER_ADDRESS')
 broker_port = int(os.getenv('BROKER_PORT'))
 username = os.getenv('USER_NAME')
 password = os.getenv('PASSWORD')
-DOWNLOAD_PATH = r'C:\Users\Nehemiah Skandera\Desktop\ECE140B\Spotipy\mvp-project-sound-bank\SoundBankFiles'
+DOWNLOAD_PATH = r'C:\\Users\\maxdg\\PycharmProjects\\ee140\\mvp-project-sound-bank\\song_folder'
 
 def get_first_audio_stream(song_query):
     try:
@@ -55,10 +55,8 @@ def on_message(client, userdata, msg):
         if command == 'play':
             music_queue.play_audio(music_queue.currently_playing)
             print(f"Playing: {music_queue.currently_playing}")
-        elif command == 'pause':
-            music_queue.pause()
-        elif command == 'resume':
-            music_queue.play()
+        elif command == 'toggle_play':
+            music_queue.toggle_play()
         elif command == 'stop':
             music_queue.player.stop()
             print("Playback stopped")
@@ -119,10 +117,13 @@ class MusicQueue:
         self.player.play()
         print(f"Now playing '{song}'.")
 
-    def pause(self):
+    def toggle_play(self):
         if self.player.is_playing():
             self.player.pause()
-            print("Playback paused")
+            print("Toggled: Playback Paused")
+        else:
+            self.player.play()
+            print("Toggled: Playing Again")
 
     def skip(self):
         print("skipping: " + self.currently_playing)
@@ -133,9 +134,7 @@ class MusicQueue:
         self.play_next()
 
     def handle_end_of_song(self, event):
-        print("you wish big guy")
-        self.delete_song_file(self.currently_playing)
-        print("Current song ended.")
+        print("Current song ended: W")
         self.play_next()
 
     def delete_song_file(self, song):
