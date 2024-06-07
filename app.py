@@ -174,4 +174,4 @@ if __name__ == '__main__':
 
     client_sub.loop_start()
 
-    uvicorn.run(app)
+    uvicorn.run(app, port=80)
