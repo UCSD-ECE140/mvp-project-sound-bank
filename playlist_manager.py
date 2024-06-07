@@ -4,6 +4,8 @@ from pytube import Search, YouTube
 from dotenv import load_dotenv
 import paho.mqtt.client as paho
 from paho import mqtt
+import time
+
 
 # Path to the directory containing the songs
 songs_directory = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
@@ -75,6 +77,7 @@ def on_subscribe(client, userdata, mid, granted_qos, properties=None):
 
 def on_message(client, userdata, msg):
     payload = msg.payload.decode('utf-8')
+    print(payload+"messafefefefe")
     try:
         playlist_name, song_title = payload.split(', ')
         playlist_name = playlist_name.strip('"')
@@ -101,6 +104,7 @@ if __name__ == "__main__":
     client.on_message = on_message
     client.on_publish = on_publish
     client.on_subscribe = on_subscribe
+
 
     client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
     client.username_pw_set(username, password)

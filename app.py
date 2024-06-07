@@ -132,6 +132,7 @@ async def queue_add(request: Request):
 
     if song:
         client.publish("songs/add", payload=song, qos=1)
+        time.sleep(3)
         return {"message": "Song added to the queue"}
     else:
         return {"message": "No song provided"}
