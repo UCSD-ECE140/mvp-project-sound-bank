@@ -1,5 +1,6 @@
 import os
 import vlc
+import time
 import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from pytube import Search, YouTube
@@ -10,7 +11,7 @@ broker_address = os.getenv('BROKER_ADDRESS')
 broker_port = int(os.getenv('BROKER_PORT'))
 username = os.getenv('USER_NAME')
 password = os.getenv('PASSWORD')
-DOWNLOAD_PATH = r'C:\\Users\\maxdg\\PycharmProjects\\ee140\\mvp-project-sound-bank'  # Use a raw string
+DOWNLOAD_PATH = r'C:\\Users\\maxdg\\PycharmProjects\\ee140\\mvp-project-sound-bank\\song_folder'  # Use a raw string
 
 def get_first_audio_stream(song_query):
     try:
@@ -31,6 +32,14 @@ def on_publish(client, userdata, mid, properties=None):
 def on_subscribe(client, userdata, mid, granted_qos, properties=None):
     print("Subscribed: " + str(mid) + " " + str(granted_qos))
 
+def print_queue(self):
+    if self.queue:
+        print("Current Queue:")
+        for song in self.queue:
+            print(f" - {song}")
+    else:
+        print("The queue is empty.")
+
 def on_message(client, userdata, msg):
     if msg.topic == "queue/songs":
         song_query = msg.payload.decode("utf-8").strip()
@@ -40,11 +49,21 @@ def on_message(client, userdata, msg):
             music_queue.add_song(audio_stream.title)
         else:
             print(f"Failed to handle song request for '{song_query}'")
-    if msg.topic == "queue/commands":
+    elif msg.topic == "queue/commands":
         command = msg.payload.decode("utf-8").strip().lower()
         print(f"Received command: {command}")
-        if command in ['play', 'pause', 'stop', 'skip']:
-            music_queue.play_audio(music_queue.currently_playing, command)
+        if command == 'play':
+            music_queue.play_audio(music_queue.currently_playing)
+            print(f"Playing: {music_queue.currently_playing}")
+        elif command == 'pause':
+            music_queue.pause()
+        elif command == 'resume':
+            music_queue.play()
+        elif command == 'stop':
+            music_queue.player.stop()
+            print("Playback stopped")
+        elif command == 'skip':
+            music_queue.skip()
 
 class MusicQueue:
     def __init__(self):
@@ -53,20 +72,32 @@ class MusicQueue:
         self.player = vlc.MediaPlayer()
         self.player_events = self.player.event_manager()
         self.player_events.event_attach(vlc.EventType.MediaPlayerEndReached, self.handle_end_of_song)
-
+    def move_song(self, current_index, new_index):
+        """Move a song in the queue from current_index to new_index."""
+        if 0 <= current_index < len(self.queue) and 0 <= new_index < len(self.queue):
+            song = self.queue.pop(current_index)
+            self.queue.insert(new_index, song)
+            print(f"Moved song from position {current_index} to {new_index}.")
+        else:
+            print("Invalid index.")
     def add_song(self, song):
         self.queue.append(song)
         print(f"Added '{song}' to the queue.")
+        self.print_queue_state()
         if not self.currently_playing:
             self.play_next()
 
     def play_next(self):
         if self.queue:
+            # Ensure the previous song file is deleted if it exists
+            if self.currently_playing is not None :
+                self.delete_song_file(self.currently_playing)
             self.currently_playing = self.queue.pop(0)
             self.download_and_play(self.currently_playing)
+            self.print_queue_state()
         else:
             self.currently_playing = None
-            print("The queue is empty.")
+            self.print_queue_state()
 
     def download_and_play(self, song):
         file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
@@ -94,13 +125,48 @@ class MusicQueue:
             print("Playback paused")
 
     def skip(self):
-        self.player.stop()
-        print("Skipping current song...")
+        print("skipping: " + self.currently_playing)
+        if self.player.is_playing():
+            self.player.stop()
+            self.delete_song_file(self.currently_playing)
+            print("Skipping current song...")
         self.play_next()
 
     def handle_end_of_song(self, event):
+        print("you wish big guy")
+        self.delete_song_file(self.currently_playing)
         print("Current song ended.")
         self.play_next()
+
+    def delete_song_file(self, song):
+        file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
+        if os.path.exists(file_path):
+            self.player.stop()  # Ensure VLC is not using the file
+            retry_attempts = 3
+            for attempt in range(retry_attempts):
+                try:
+                    os.remove(file_path)
+                    print(f"Deleted '{file_path}'.")
+                    break
+                except PermissionError:
+                    if attempt < retry_attempts - 1:  # Avoid sleeping on the last attempt
+                        print(f"Unable to delete file on attempt {attempt + 1}. Retrying...")
+                        time.sleep(1)  # Wait a bit before retrying
+                    else:
+                        print(f"Failed to delete file after {retry_attempts} attempts.")
+
+    def print_queue_state(self):
+        if self.currently_playing or self.queue:
+            state_message = "Queue State:\n"
+            if self.currently_playing:
+                state_message += f"Currently Playing: {self.currently_playing}\n"
+            if self.queue:
+                state_message += "Upcoming: " + ", ".join(self.queue)
+            else:
+                state_message += "No upcoming songs."
+            print(state_message)
+        else:
+            print("The queue is empty.")
 
 music_queue = MusicQueue()
 
