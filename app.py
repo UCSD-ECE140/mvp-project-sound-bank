@@ -95,7 +95,10 @@ def on_message(client, userdata, msg):
 async def get():
     with open('index.html', 'r') as file:
         return HTMLResponse(file.read())
-    
+
+@app.get("/healthy")
+async def healthy():
+    return JSONResponse({"healthy":"maybe"})
 
 @app.get("/queuepage")
 async def redirect():

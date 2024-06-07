@@ -11,7 +11,7 @@ broker_address = os.getenv('BROKER_ADDRESS')
 broker_port = int(os.getenv('BROKER_PORT'))
 username = os.getenv('USER_NAME')
 password = os.getenv('PASSWORD')
-DOWNLOAD_PATH = r'C:\\Users\\maxdg\\PycharmProjects\\ee140\\mvp-project-sound-bank\\song_folder'  # Use a raw string
+DOWNLOAD_PATH = os.getenv('DOWNLOAD_PATH')
 
 def get_first_audio_stream(song_query):
     try:
