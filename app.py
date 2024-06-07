@@ -95,7 +95,10 @@ def on_message(client, userdata, msg):
 async def get():
     with open('index.html', 'r') as file:
         return HTMLResponse(file.read())
-    
+
+@app.get("/healthy")
+async def healthy():
+    return JSONResponse({"healthy":"maybe"})
 
 @app.get("/queuepage")
 async def redirect():
@@ -172,4 +175,5 @@ if __name__ == '__main__':
 
     client_sub.loop_start()
 
-    uvicorn.run(app)
+    uvicorn.run(app,host="0.0.0.0", port=80)
+    #change to 8000 when running locally
