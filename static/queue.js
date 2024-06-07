@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedSong = searchInput.value;
         console.log(selectedSong)
         if (selectedSong) {
-            fetch('/post_song', {
+            fetch('/queue_add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
