@@ -87,9 +87,9 @@ class MusicQueue:
 
     def play_next(self):
         if self.queue:
-            # # Ensure the previous song file is deleted if it exists
-            # if self.currently_playing is not None :
-            #     self.delete_song_file(self.currently_playing)
+            # Ensure the previous song file is deleted if it exists
+            if self.currently_playing is not None :
+                self.delete_song_file(self.currently_playing)
             self.currently_playing = self.queue.pop(0)
             self.download_and_play(self.currently_playing)
             self.print_queue_state()
@@ -134,9 +134,7 @@ class MusicQueue:
         self.play_next()
 
     def handle_end_of_song(self, event):
-        print("you wish big guy")
-        self.delete_song_file(self.currently_playing)
-        print("Current song ended.")
+        print("Current song ended: W")
         self.play_next()
 
     def delete_song_file(self, song):
