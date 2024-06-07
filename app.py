@@ -7,7 +7,7 @@ import paho.mqtt.client as paho
 from paho import mqtt
 from dotenv import load_dotenv
 import os
-
+import time
 
 app = FastAPI()
 app.mount('/static', StaticFiles(directory='static'), name='static')
@@ -165,6 +165,9 @@ if __name__ == '__main__':
 
     # subscribe to all topics of numbers by using the wildcard "#"
     client_sub.subscribe("songs/#", qos=1)
+
+    time.sleep(3)
+
 
     client_sub.loop_start()
 
