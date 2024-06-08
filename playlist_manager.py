@@ -1,5 +1,7 @@
 import os
 import json
+from dotenv import load_dotenv
+import paho.mqtt.client as paho
 from pytube import Search, YouTube
 from dotenv import load_dotenv
 import paho.mqtt.client as paho
@@ -46,22 +48,27 @@ def download_song(song_query):
         return song_path
     return None
 
-# Function to handle instruction strings
-def handle_instruction(instruction):
+def on_connect(client, userdata, flags, rc, properties=None):
+    print("CONNACK received with code %s." % rc)
+    client.subscribe("songs/add")
+
+def on_publish(client, userdata, mid, properties=None):
+    print("mid: " + str(mid))
+
+def on_subscribe(client, userdata, mid, granted_qos, properties=None):
+    print("Subscribed: " + str(mid) + " " + str(granted_qos))
+
+def on_message(client, userdata, msg):
+    payload = msg.payload.decode('utf-8')
     try:
-        playlist_name, song_title = instruction.split('", "')
+        playlist_name, song_title = payload.split(', ')
         playlist_name = playlist_name.strip('"')
         song_title = song_title.strip('"')
         song_path = os.path.join(songs_directory, song_title + ".mp4")
-        
         if not os.path.exists(song_path):
             print(f"Song '{song_title}' not found locally. Downloading...")
             song_path = download_song(song_title)
-        
-        if song_path:
-            add_song_to_playlist(playlist_name, song_path)
-        else:
-            print(f"Failed to download song '{song_title}'.")
+        add_song_to_playlist(playlist_name, song_path)
     except ValueError:
         print("Invalid instruction format. Use '\"PlaylistName\", \"SongTitle\"'.")
 
