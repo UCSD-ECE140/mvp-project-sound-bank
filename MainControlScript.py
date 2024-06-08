@@ -4,7 +4,9 @@ import threading
 import subprocess
 import json
 import logging
+import os
 from dotenv import load_dotenv
+import paho.mqtt.client as paho
 
 # Load environment variables
 load_dotenv()
@@ -80,9 +82,6 @@ def toggle_play_pause(channel):
     mqtt_client.publish("queue/commands", command)
     logging.info(f"Sent command: {command}")
 
-# MQTT Setup (from your musicQueueRaspPi.py)
-import paho.mqtt.client as paho
-
 def on_connect(client, userdata, flags, rc, properties=None):
     print("CONNACK received with code %s." % rc)
 
@@ -92,12 +91,15 @@ def on_message(client, userdata, msg):
 
 # MQTT Client Initialization
 mqtt_client = paho.Client()
-mqtt_client.on_connect = on_connect
-mqtt_client.on_message = on_message
-mqtt_client.tls_set(tls_version=paho.ssl.PROTOCOL_TLS)
-mqtt_client.username_pw_set(os.getenv('USER_NAME'), os.getenv('PASSWORD'))
-mqtt_client.connect(os.getenv('BROKER_ADDRESS'), int(os.getenv('BROKER_PORT')))
-mqtt_client.loop_start()
+load_dotenv()
+
+# broker_address = os.environ.get('BROKER_ADDRESS')
+# broker_port = int(os.environ.get('BROKER_PORT'))
+# username = os.environ.get('USER_NAME')
+# password = os.environ.get('PASSWORD')
+
+# client = paho.Client(callback_api_version=paho.CallbackAPIVersion.VERSION1, client_id="", userdata=None, protocol=paho.MQTTv5)
+
 
 # GPIO Event Detection
 try:
