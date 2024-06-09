@@ -1,9 +1,7 @@
 import RPi.GPIO as GPIO
 import time
-import threading
 import subprocess
 import json
-import logging
 import os
 from dotenv import load_dotenv
 import paho.mqtt.client as paho
@@ -11,11 +9,8 @@ import paho.mqtt.client as paho
 # Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(filename='music_controller.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 # GPIO Pin Definitions
-SWITCH_PIN = 17
+SWITCH_PIN = 12
 BUTTON1_PIN = 27
 BUTTON2_PIN = 22
 BUTTON3_PIN = 23
@@ -26,6 +21,8 @@ current_song_index = 0
 is_playing = False
 playlists = []
 current_script = None
+queue = []
+use_queue = False
 
 # Load Playlists
 def load_playlists():
@@ -33,96 +30,114 @@ def load_playlists():
     try:
         with open('playlists.json', 'r') as file:
             playlists = json.load(file)
-        logging.info("Loaded playlists successfully.")
     except Exception as e:
-        logging.error(f"Error loading playlists: {e}")
+        print(f"Error loading playlists: {e}")
 
 # Initialize GPIO
-try:
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(SWITCH_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    logging.info("GPIO initialized successfully.")
-except Exception as e:
-    logging.error(f"Error initializing GPIO: {e}")
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(SWITCH_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-# Function to run a script
-def run_script(script_name):
-    global current_script
-    if current_script:
+# Initialize Playlists
+load_playlists()
+
+# MQTT Client Configuration
+broker_address = os.environ.get('BROKER_ADDRESS')
+broker_port = int(os.environ.get('BROKER_PORT'))
+username = os.environ.get('USER_NAME')
+password = os.environ.get('PASSWORD')
+
+client = paho.Client()
+client.username_pw_set(username, password)
+client.connect(broker_address, broker_port)
+
+# Play Song
+def play_song(song_path):
+    global current_script, is_playing
+    stop_song()
+    current_script = subprocess.Popen(['vlc', song_path])
+    is_playing = True
+
+# Stop Song
+def stop_song():
+    global current_script, is_playing
+    if current_script is not None:
         current_script.terminate()
-    try:
-        current_script = subprocess.Popen(['python', script_name])
-        logging.info(f"Started script: {script_name}")
-    except Exception as e:
-        logging.error(f"Error starting script {script_name}: {e}")
+        current_script = None
+        is_playing = False
 
-# Functions for Button Actions
-def iterate_playlists(channel):
+# Button Handlers
+def button1_pressed(channel):
     global current_playlist_index, current_song_index
-    current_playlist_index = (current_playlist_index + 1) % len(playlists)
-    current_song_index = 0
-    print(f"Switched to playlist: {list(playlists.keys())[current_playlist_index]}")
-    logging.info(f"Switched to playlist: {list(playlists.keys())[current_playlist_index]}")
+    if not use_queue:
+        current_playlist_index = (current_playlist_index + 1) % len(playlists)
+        current_song_index = 0
+        play_current_song()
 
-def iterate_songs(channel):
+def button2_pressed(channel):
     global current_song_index
-    playlist_name = list(playlists.keys())[current_playlist_index]
-    current_song_index = (current_song_index + 1) % len(playlists[playlist_name])
-    print(f"Switched to song: {playlists[playlist_name][current_song_index]}")
-    logging.info(f"Switched to song: {playlists[playlist_name][current_song_index]}")
+    if not use_queue:
+        current_song_index = (current_song_index + 1) % len(playlists[current_playlist_name()])
+        play_current_song()
 
-def toggle_play_pause(channel):
+def button3_pressed(channel):
     global is_playing
-    is_playing = not is_playing
-    command = 'resume' if is_playing else 'pause'
-    print(f"Sending command: {command}")
-    mqtt_client.publish("queue/commands", command)
-    logging.info(f"Sent command: {command}")
+    if is_playing:
+        stop_song()
+    else:
+        play_current_song()
 
-def on_connect(client, userdata, flags, rc, properties=None):
-    print("CONNACK received with code %s." % rc)
+def switch_pressed(channel):
+    global use_queue
+    use_queue = GPIO.input(SWITCH_PIN) == GPIO.HIGH
+    if use_queue and queue:
+        play_song(queue[0])
+    elif not use_queue:
+        play_current_song()
 
-def on_message(client, userdata, msg):
-    print(f"Received message on topic {msg.topic}: {msg.payload.decode('utf-8')}")
-    logging.info(f"Received message on topic {msg.topic}: {msg.payload.decode('utf-8')}")
+# Get Current Playlist Name
+def current_playlist_name():
+    return list(playlists.keys())[current_playlist_index]
 
-# MQTT Client Initialization
-mqtt_client = paho.Client()
-load_dotenv()
+# Play Current Song
+def play_current_song():
+    stop_song()
+    playlist_name = current_playlist_name()
+    if playlist_name in playlists and playlists[playlist_name]:
+        song_path = playlists[playlist_name][current_song_index]
+        play_song(song_path)
 
-# broker_address = os.environ.get('BROKER_ADDRESS')
-# broker_port = int(os.environ.get('BROKER_PORT'))
-# username = os.environ.get('USER_NAME')
-# password = os.environ.get('PASSWORD')
+# MQTT on_message Callback
+def on_message(client, userdata, message):
+    global queue
+    try:
+        song_path = message.payload.decode('utf-8')
+        queue.append(song_path)
+        if use_queue and not is_playing:
+            play_song(song_path)
+    except Exception as e:
+        print(f"Error handling MQTT message: {e}")
 
-# client = paho.Client(callback_api_version=paho.CallbackAPIVersion.VERSION1, client_id="", userdata=None, protocol=paho.MQTTv5)
+# Set up event detection
+GPIO.add_event_detect(BUTTON1_PIN, GPIO.RISING, callback=button1_pressed, bouncetime=300)
+GPIO.add_event_detect(BUTTON2_PIN, GPIO.RISING, callback=button2_pressed, bouncetime=300)
+GPIO.add_event_detect(BUTTON3_PIN, GPIO.RISING, callback=button3_pressed, bouncetime=300)
+GPIO.add_event_detect(SWITCH_PIN, GPIO.BOTH, callback=switch_pressed, bouncetime=300)
 
+# MQTT Configuration
+client.on_message = on_message
+client.subscribe("queue/add")
+client.loop_start()
 
-# GPIO Event Detection
+# Main Loop
 try:
-    GPIO.add_event_detect(BUTTON1_PIN, GPIO.FALLING, callback=iterate_playlists, bouncetime=300)
-    GPIO.add_event_detect(BUTTON2_PIN, GPIO.FALLING, callback=iterate_songs, bouncetime=300)
-    GPIO.add_event_detect(BUTTON3_PIN, GPIO.FALLING, callback=toggle_play_pause, bouncetime=300)
-    logging.info("GPIO event detection setup successful.")
-except Exception as e:
-    logging.error(f"Error setting up GPIO event detection: {e}")
-
-# Main Loop to monitor switch
-try:
-    load_playlists()
     while True:
-        if GPIO.input(SWITCH_PIN) == GPIO.LOW:
-            run_script('main.py')
-        else:
-            run_script('musicQueueRaspPi.py')
         time.sleep(1)
 except KeyboardInterrupt:
     pass
 finally:
-    if current_script:
-        current_script.terminate()
     GPIO.cleanup()
-    logging.info("Music controller terminated.")
+    client.loop_stop()
+    stop_song()
