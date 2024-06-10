@@ -8,14 +8,22 @@ import subprocess
 
 # Define the function to run main.py
 def run_main():
-    os.system('python main.py')
+    global current_process
+    current_process = subprocess.Popen(['python3', 'main.py'])
 
-# Create a thread to run main.py
-main_thread = threading.Thread(target=run_main)
-main_thread.start()
+# Define the function to run musicQueueRaspPi.py
+def run_music_queue():
+    global current_process
+    current_process = subprocess.Popen(['python3', 'musicQueueRaspPi.py'])
 
-# Rest of your code...
-# (Replace this with your existing code)
+# Function to switch processes
+def switch_process(new_process_function):
+    global current_process
+    if current_process is not None:
+        current_process.terminate()
+        current_process.wait()
+    new_process_function()
+
 # GPIO Pin Definitions (Physical pin numbers)
 BUTTON1_PIN = 18
 BUTTON2_PIN = 22
@@ -47,8 +55,6 @@ except Exception as e:
     GPIO.cleanup()
     exit(1)
 
-# Rest of your code...
-# (Replace this with your existing code)
 # Function to play an audio file using VLC
 def play_audio(file_path):
     print(f"Playing {file_path}")
@@ -93,25 +99,19 @@ def check_button_press():
                 is_playing = True
                 player.play()
 
-# Function to run mainControlScript.py
-def run_main_control_script():
-    global player, main_thread
-    
-    # Stop main.py thread
-    main_thread.join()
-    os.system('python musicQueueRaspPi.py')
-    # Restart main.py thread
-    main_thread = threading.Thread(target=run_main)
-    main_thread.start()
-
 # Initialize global variables
 current_playlist_index = 0
 current_song_index = 0
 player = None
 is_playing = False
+current_process = None
+
+# Start with running main.py
+switch_process(run_main)
 
 # Main loop
 try:
+    last_switch_state = GPIO.input(SWITCH_PIN)
     while True:
         current_playlist = list(playlists.keys())[current_playlist_index]
         playlist_songs = playlists[current_playlist]
@@ -127,10 +127,17 @@ try:
             check_button_press()
             
             # Check if the switch state changes
-            if GPIO.input(SWITCH_PIN) == GPIO.LOW:
-                run_main_control_script()
+            current_switch_state = GPIO.input(SWITCH_PIN)
+            if current_switch_state != last_switch_state:
+                last_switch_state = current_switch_state
+                if current_switch_state == GPIO.LOW:
+                    print("Switching to musicQueueRaspPi.py")
+                    switch_process(run_music_queue)
+                else:
+                    print("Switching to main.py")
+                    switch_process(run_main)
                 time.sleep(1)  # Debounce delay
-            
+
         else:
             print("Index out of range.")
         
@@ -139,4 +146,7 @@ try:
 except KeyboardInterrupt:
     pass
 finally:
+    if current_process is not None:
+        current_process.terminate()
+        current_process.wait()
     GPIO.cleanup()
