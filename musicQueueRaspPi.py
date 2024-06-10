@@ -11,7 +11,12 @@ broker_address = os.getenv('BROKER_ADDRESS')
 broker_port = int(os.getenv('BROKER_PORT'))
 username = os.getenv('USER_NAME')
 password = os.getenv('PASSWORD')
+
+music_queue_list=[]
+
 DOWNLOAD_PATH = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
+
+
 
 def get_first_audio_stream(song_query):
     try:
@@ -44,9 +49,11 @@ def on_message(client, userdata, msg):
     if msg.topic == "queue/songs":
         song_query = msg.payload.decode("utf-8").strip()
         print(f"Received song request: {song_query}")
+        
         audio_stream = get_first_audio_stream(song_query)
         if audio_stream:
             music_queue.add_song(audio_stream.title)
+            music_queue_list.append(song_query)
         else:
             print(f"Failed to handle song request for '{song_query}'")
     elif msg.topic == "queue/commands":
@@ -64,6 +71,8 @@ def on_message(client, userdata, msg):
             music_queue.skip()
         elif command == 'next':
             music_queue.play_next()
+        elif command == 'test':
+            broadcast_queue_state()
 
 class MusicQueue:
     def __init__(self):
@@ -122,6 +131,7 @@ class MusicQueue:
         self.last_song = self.currently_playing
 
     def download_song(self, song):
+
         audio_stream = get_first_audio_stream(song)
         if audio_stream:
             audio_stream.download(output_path=DOWNLOAD_PATH, filename=song + '.mp4')
@@ -152,6 +162,7 @@ class MusicQueue:
             self.player.stop()
             self.delete_song_file(self.currently_playing)
             print("Skipping current song...")
+            
         self.play_next()
 
     def handle_end_of_song(self, event):
@@ -184,6 +195,7 @@ class MusicQueue:
                     print("first try os file remove")
                     os.remove(file_path)
                     print(f"Deleted '{file_path}'.")
+                    music_queue_list.pop()
                     break
                 except PermissionError:
                     if attempt < retry_attempts - 1:  # Avoid sleeping on the last attempt
@@ -204,6 +216,11 @@ class MusicQueue:
             print(state_message)
         else:
             print("The queue is empty.")
+
+    
+def broadcast_queue_state():
+    for i in music_queue_list:
+        print(i)
 
 music_queue = MusicQueue()
 
