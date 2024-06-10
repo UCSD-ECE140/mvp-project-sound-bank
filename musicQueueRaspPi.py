@@ -1,9 +1,15 @@
 import os
+import threading
 import vlc
 import time
 import paho.mqtt.client as paho
 from dotenv import load_dotenv
 from pytube import Search, YouTube
+
+#note to any reader, the handle_end_of_song or anythign to do with the events of an end of song
+#crash the vlc media player instance and does not allow you to send any information to it
+#meaning we as a group had to write a janky work around called monitor_song_end which checks
+#how much time is left then calls the skip funciton becasue that all worked great.
 
 load_dotenv()
 
@@ -17,7 +23,9 @@ music_queue_list=[]
 #DOWNLOAD_PATH = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
 DOWNLOAD_PATH = r'SoundBankFiles'
 
-
+#
+# DOWNLOAD_PATH = r'C:\\Users\\maxdg\\PycharmProjects\\ee140\\mvp-project-sound-bank\\song_folder'
+# #DOWNLOAD_PATH = r'SoundBankQueue'
 
 def get_first_audio_stream(song_query):
     try:
@@ -50,11 +58,9 @@ def on_message(client, userdata, msg):
     if msg.topic == "queue/songs":
         song_query = msg.payload.decode("utf-8").strip()
         print(f"Received song request: {song_query}")
-        
         audio_stream = get_first_audio_stream(song_query)
         if audio_stream:
             music_queue.add_song(audio_stream.title)
-            music_queue_list.append(song_query)
         else:
             print(f"Failed to handle song request for '{song_query}'")
     elif msg.topic == "queue/commands":
@@ -72,6 +78,8 @@ def on_message(client, userdata, msg):
             music_queue.skip()
         elif command == 'next':
             music_queue.play_next()
+        elif command == 'restart':
+            music_queue.restart()
         elif command == 'test':
             broadcast_queue_state()
 
@@ -106,11 +114,9 @@ class MusicQueue:
 
     def play_next(self):
         if self.queue:
-            print("insplayself"+ self.queue[0])
             # Ensure the previous song file is deleted if it exists
             print("queue exists")
             if self.currently_playing is not None :
-                print(self.currently_playing)
                 print("deleting old song")
                 self.delete_song_file(self.currently_playing)
             print("popping")
@@ -132,7 +138,6 @@ class MusicQueue:
         self.last_song = self.currently_playing
 
     def download_song(self, song):
-
         audio_stream = get_first_audio_stream(song)
         if audio_stream:
             audio_stream.download(output_path=DOWNLOAD_PATH, filename=song + '.mp4')
@@ -148,6 +153,26 @@ class MusicQueue:
         print("sent filepath to media player")
         self.player.play()
         print(f"Now playing '{song}'.")
+        time.sleep(1)  # Allow some time for the media to start and gather information
+        print(f"Now playing '{song}', length: {self.player.get_length()} ms")
+        self.monitor_song_end()
+
+    def monitor_song_end(self):
+        #print(str(self.player.get_length()) + " FIND THIS")
+
+        """ Monitors the remaining time of the currently playing song and triggers skip if near end. """
+        def monitor():
+            while self.player.is_playing():
+                time.sleep(1)  # Check every 100ms
+                remaining_time = self.player.get_length() - self.player.get_time()
+                print(f"Remaining time: {remaining_time} ms")
+                if remaining_time < 5000:  # Less than 5 second remaining
+                    print("Song is about to end. Triggering skip...")
+                    self.skip()
+                    break
+
+        thread = threading.Thread(target=monitor)
+        thread.start()
 
     def toggle_play(self):
         if self.player.is_playing():
@@ -163,14 +188,17 @@ class MusicQueue:
             self.player.stop()
             self.delete_song_file(self.currently_playing)
             print("Skipping current song...")
-            
         self.play_next()
 
-    def handle_end_of_song(self, event):
-        print("Current song ended: W")
+    def restart(self):
+        print("restarting current song")
+        self.player.set_time(3) #sets the time to the begining
+
+    def handle_end_of_song(self, event): #this should never be called now
+        print("Critical error, restart the soundbank")
         self.play_next_end()
 
-    def play_next_end(self):
+    def play_next_end(self): #this should never be called either
         #delete old song:
         print("about to delete the old song")
         print(self.last_song)
@@ -206,7 +234,6 @@ class MusicQueue:
                         print(f"Failed to delete file after {retry_attempts} attempts.")
 
     def print_queue_state(self):
-
         if self.currently_playing or self.queue:
             state_message = "Queue State:\n"
             if self.currently_playing:
@@ -218,10 +245,10 @@ class MusicQueue:
             print(state_message)
         else:
             print("The queue is empty.")
-        
+
         client.publish("queue/state", state_message, qos=0)
 
-    
+
 def broadcast_queue_state():
     for i in music_queue_list:
         print(i)
