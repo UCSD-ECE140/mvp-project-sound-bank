@@ -148,13 +148,9 @@ class MusicQueue:
     def play_audio(self, song):
         print("in play_audio")
         file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
-        print("file path joined: " + file_path)
         self.player.set_media(vlc.Media(file_path))
-        print("sent filepath to media player")
         self.player.play()
-        print(f"Now playing '{song}'.")
         time.sleep(1)  # Allow some time for the media to start and gather information
-        print(f"Now playing '{song}', length: {self.player.get_length()} ms")
         self.monitor_song_end()
 
     def monitor_song_end(self):
@@ -165,7 +161,7 @@ class MusicQueue:
             while self.player.is_playing():
                 time.sleep(1)  # Check every 100ms
                 remaining_time = self.player.get_length() - self.player.get_time()
-                print(f"Remaining time: {remaining_time} ms")
+                #print(f"Remaining time: {remaining_time} ms") #trouble shooting
                 if remaining_time < 5000:  # Less than 5 second remaining
                     print("Song is about to end. Triggering skip...")
                     self.skip()
