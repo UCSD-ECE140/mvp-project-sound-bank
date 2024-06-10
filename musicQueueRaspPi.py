@@ -206,6 +206,7 @@ class MusicQueue:
                         print(f"Failed to delete file after {retry_attempts} attempts.")
 
     def print_queue_state(self):
+
         if self.currently_playing or self.queue:
             state_message = "Queue State:\n"
             if self.currently_playing:
@@ -217,6 +218,8 @@ class MusicQueue:
             print(state_message)
         else:
             print("The queue is empty.")
+        
+        client.publish("queue/state", state_message, qos=0)
 
     
 def broadcast_queue_state():
