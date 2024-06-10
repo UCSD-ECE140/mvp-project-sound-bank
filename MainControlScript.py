@@ -6,8 +6,8 @@ import time
 
 # GPIO Pin Definitions (Physical pin numbers)
 BUTTON1_PIN = 18
-BUTTON2_PIN = 22
-BUTTON3_PIN = 13
+BUTTON2_PIN = 13
+BUTTON3_PIN = 22
 
 # Initialize GPIO
 GPIO.setmode(GPIO.BOARD)
