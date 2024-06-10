@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 def run_playlist_manager():
     os.system("python playlist_manager.py")
 
-def run_app():
-    os.system("python app.py")
+# def run_app():
+#     os.system("python app.py")
 
 def install_requirements():
     os.system("pip install -r requirements.txt")
@@ -30,12 +30,12 @@ if __name__ == '__main__':
 
     # Create threads for running the scripts
     playlist_manager_thread = threading.Thread(target=run_playlist_manager)
-    app_thread = threading.Thread(target=run_app)
+    # app_thread = threading.Thread(target=run_app)
 
     # Start the threads
     playlist_manager_thread.start()
-    app_thread.start()
+    # app_thread.start()
 
     # Wait for both threads to complete
     playlist_manager_thread.join()
-    app_thread.join()
+    # app_thread.join()
