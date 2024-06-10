@@ -41,8 +41,8 @@ def play_audio(file_path):
     return player
 
 # Function to handle button press events
-def check_button_press(player):
-    global current_playlist_index, current_song_index, is_playing
+def check_button_press():
+    global current_playlist_index, current_song_index, is_playing, player
     
     # Button 1: Iterate through playlists
     if not GPIO.input(BUTTON1_PIN):
@@ -74,17 +74,21 @@ def check_button_press(player):
 current_playlist_index = 0
 current_song_index = 0
 is_playing = False
+player = None
 
 # Main loop
 try:
-    player = None
     while True:
+        current_playlist = list(playlists.keys())[current_playlist_index]
+        current_song = playlists[current_playlist][current_song_index]
+        
+        # If player is not created or song ended, create a new player
         if player is None or player.get_state() == vlc.State.Ended:
-            current_playlist = list(playlists.keys())[current_playlist_index]
-            current_song = playlists[current_playlist][current_song_index]
             player = play_audio(current_song)
-        check_button_press(player)
+        
+        check_button_press()
         time.sleep(0.1)  # Small delay to reduce CPU usage
+
 except KeyboardInterrupt:
     pass
 finally:
