@@ -9,7 +9,7 @@ import paho.mqtt.client as paho
 # Load environment variables
 load_dotenv()
 
-# GPIO Pin Definitions
+# GPIO Pin Definitions (Physical pin numbers)
 SWITCH_PIN = 12
 BUTTON1_PIN = 11
 BUTTON2_PIN = 22
