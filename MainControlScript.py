@@ -38,6 +38,7 @@ def play_audio(file_path):
     print(f"Playing {file_path}")
     player = vlc.MediaPlayer(file_path)
     player.play()
+    time.sleep(0.1)  # Delay to allow VLC to initialize
     return player
 
 # Function to handle button press events
