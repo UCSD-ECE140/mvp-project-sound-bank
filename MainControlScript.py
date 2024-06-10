@@ -38,13 +38,10 @@ def play_audio(file_path):
     print(f"Playing {file_path}")
     player = vlc.MediaPlayer(file_path)
     player.play()
-    # Wait for the song to finish playing
-    while player.get_state() != vlc.State.Ended:
-        pass
-    player.stop()
+    return player
 
 # Function to handle button press events
-def check_button_press():
+def check_button_press(player):
     global current_playlist_index, current_song_index, is_playing
     
     # Button 1: Iterate through playlists
@@ -65,13 +62,11 @@ def check_button_press():
         if is_playing:
             print("Paused")
             is_playing = False
-            # Pause current song
-            # Implement pause functionality here
+            player.pause()
         else:
             print("Playing")
             is_playing = True
-            # Resume playing current song
-            # Implement play functionality here
+            player.play()
 
 # Initialize global variables
 current_playlist_index = 0
@@ -80,8 +75,13 @@ is_playing = False
 
 # Main loop
 try:
+    player = None
     while True:
-        check_button_press()
+        if player is None or player.get_state() == vlc.State.Ended:
+            current_playlist = list(playlists.keys())[current_playlist_index]
+            current_song = playlists[current_playlist][current_song_index]
+            player = play_audio(current_song)
+        check_button_press(player)
         time.sleep(0.1)  # Small delay to reduce CPU usage
 except KeyboardInterrupt:
     pass
