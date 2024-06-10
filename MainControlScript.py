@@ -1,37 +1,24 @@
 import RPi.GPIO as GPIO
 import time
-import subprocess
-import json
 import os
-from dotenv import load_dotenv
+import vlc
 import paho.mqtt.client as paho
+from dotenv import load_dotenv
+from pytube import Search, YouTube
 
-# Load environment variables
 load_dotenv()
 
+# Load environment variables
+broker_address = os.getenv('BROKER_ADDRESS')
+broker_port = int(os.getenv('BROKER_PORT'))
+username = os.getenv('USER_NAME')
+password = os.getenv('PASSWORD')
+DOWNLOAD_PATH = r'SoundBankFiles'
+
 # GPIO Pin Definitions (Physical pin numbers)
-SWITCH_PIN = 12
-BUTTON1_PIN = 18
-BUTTON2_PIN = 22
-BUTTON3_PIN = 13
-
-# Global Variables
-current_playlist_index = 0
-current_song_index = 0
-is_playing = False
-playlists = []
-current_script = None
-queue = []
-use_queue = False
-
-# Load Playlists
-def load_playlists():
-    global playlists
-    try:
-        with open('playlists.json', 'r') as file:
-            playlists = json.load(file)
-    except Exception as e:
-        print(f"Error loading playlists: {e}")
+PAUSE_PLAY_PIN = 18
+NEXT_SONG_PIN = 22
+NEXT_PLAYLIST_PIN = 13
 
 # Initialize GPIO
 GPIO.setmode(GPIO.BOARD)
@@ -43,144 +30,181 @@ def setup_gpio(pin, direction, pull_up_down=GPIO.PUD_DOWN):
     except Exception as e:
         print(f"Error setting up pin {pin}: {e}")
 
-# Initialize Playlists
-load_playlists()
-
 # Initialize GPIO pins
 try:
-    setup_gpio(SWITCH_PIN, GPIO.IN)
-    setup_gpio(BUTTON1_PIN, GPIO.IN)
-    setup_gpio(BUTTON2_PIN, GPIO.IN)
-    setup_gpio(BUTTON3_PIN, GPIO.IN)
+    setup_gpio(PAUSE_PLAY_PIN, GPIO.IN)
+    setup_gpio(NEXT_SONG_PIN, GPIO.IN)
+    setup_gpio(NEXT_PLAYLIST_PIN, GPIO.IN)
 except Exception as e:
     print(f"Error initializing GPIO pins: {e}")
     GPIO.cleanup()
     exit(1)
 
 # MQTT Client Configuration
-broker_address = os.environ.get('BROKER_ADDRESS')
-broker_port = int(os.environ.get('BROKER_PORT'))
-username = os.environ.get('USER_NAME')
-password = os.environ.get('PASSWORD')
-
 client = paho.Client()
-client.username_pw_set(username, password)
-try:
-    client.connect(broker_address, broker_port)
-except Exception as e:
-    print(f"Error connecting to MQTT broker: {e}")
-    exit(1)
+client.username_pw_set(username, password=password)
+client.connect(broker_address, broker_port)
 
-# Play Song
-def play_song(song_path):
-    global current_script, is_playing
-    stop_song()
+music_queue_list = []
+
+def get_first_audio_stream(song_query):
     try:
-        current_script = subprocess.Popen(['vlc', song_path])
-        is_playing = True
+        s = Search(song_query)
+        first_result = s.results[0].watch_url
+        yt = YouTube(first_result)
+        return yt.streams.filter(only_audio=True).first()
     except Exception as e:
-        print(f"Error playing song: {e}")
+        print(f"Error retrieving '{song_query}': {e}")
+        return None
 
-# Stop Song
-def stop_song():
-    global current_script, is_playing
-    try:
-        if current_script is not None:
-            current_script.terminate()
-            current_script = None
-            is_playing = False
-    except Exception as e:
-        print(f"Error stopping song: {e}")
+def on_connect(client, userdata, flags, rc, properties=None):
+    print("CONNACK received with code %s." % rc)
 
-# Button Handlers
-def button1_pressed(channel):
-    global current_playlist_index, current_song_index
-    if not use_queue:
-        current_playlist_index = (current_playlist_index + 1) % len(playlists)
-        current_song_index = 0
-        play_current_song()
+def on_message(client, userdata, msg):
+    if msg.topic == "queue/songs":
+        song_query = msg.payload.decode("utf-8").strip()
+        print(f"Received song request: {song_query}")
+        
+        audio_stream = get_first_audio_stream(song_query)
+        if audio_stream:
+            music_queue.add_song(audio_stream.title)
+            music_queue_list.append(song_query)
+        else:
+            print(f"Failed to handle song request for '{song_query}'")
+    elif msg.topic == "queue/commands":
+        command = msg.payload.decode("utf-8").strip().lower()
+        print(f"Received command: {command}")
+        if command == 'play':
+            music_queue.play_audio(music_queue.currently_playing)
+            print(f"Playing: {music_queue.currently_playing}")
+        elif command == 'toggle_play':
+            music_queue.toggle_play()
+        elif command == 'stop':
+            music_queue.stop()
+            print("Playback stopped")
+        elif command == 'skip':
+            music_queue.skip()
+        elif command == 'next':
+            music_queue.play_next()
+        elif command == 'test':
+            broadcast_queue_state()
 
-def button2_pressed(channel):
-    global current_song_index
-    if not use_queue:
-        current_song_index = (current_song_index + 1) % len(playlists[current_playlist_name()])
-        play_current_song()
+class MusicQueue:
+    def __init__(self):
+        self.queue = []
+        self.currently_playing = None
+        self.last_song = None
+        self.player = vlc.MediaPlayer()
+        self.player_events = self.player.event_manager()
+        self.player_events.event_attach(vlc.EventType.MediaPlayerEndReached, self.handle_end_of_song)
 
-def button3_pressed(channel):
-    global is_playing
-    if is_playing:
-        stop_song()
-    else:
-        play_current_song()
+    def add_song(self, song):
+        self.queue.append(song)
+        print(f"Added '{song}' to the queue.")
+        self.download_song(song)
+        self.print_queue_state()
+        if not self.currently_playing:
+            self.play_next()
 
-def switch_pressed(channel):
-    global use_queue
-    use_queue = GPIO.input(SWITCH_PIN) == GPIO.HIGH
-    if use_queue and queue:
-        play_song(queue[0])
-    elif not use_queue:
-        play_current_song()
+    def play_next(self):
+        if self.queue:
+            if self.currently_playing is not None :
+                self.delete_song_file(self.currently_playing)
+            self.currently_playing = self.queue.pop(0)
+            self.play_audio(self.currently_playing)
+            self.last_song = self.currently_playing
+            self.print_queue_state()
+        else:
+            print("No songs")
+            self.currently_playing = None
+            self.print_queue_state()
 
-# Get Current Playlist Name
-def current_playlist_name():
-    return list(playlists.keys())[current_playlist_index]
+    def download_and_play(self, song):
+        file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
+        if not os.path.exists(file_path):
+            self.download_song(song)
+        self.play_audio(song)
+        self.last_song = self.currently_playing
 
-# Play Current Song
-def play_current_song():
-    stop_song()
-    playlist_name = current_playlist_name()
-    if playlist_name in playlists and playlists[playlist_name]:
-        song_path = playlists[playlist_name][current_song_index]
-        play_song(song_path)
+    def download_song(self, song):
+        audio_stream = get_first_audio_stream(song)
+        if audio_stream:
+            audio_stream.download(output_path=DOWNLOAD_PATH, filename=song + '.mp4')
+            print(f"Downloaded '{song}' to {DOWNLOAD_PATH}.")
+        else:
+            print(f"Failed to download '{song}'.")
 
-# MQTT on_message Callback
-def on_message(client, userdata, message):
-    global queue
-    try:
-        song_path = message.payload.decode('utf-8')
-        queue.append(song_path)
-        if use_queue and not is_playing:
-            play_song(song_path)
-    except Exception as e:
-        print(f"Error handling MQTT message: {e}")
+    def play_audio(self, song):
+        file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
+        self.player.set_media(vlc.Media(file_path))
+        self.player.play()
+        print(f"Now playing '{song}'.")
 
-# Set up event detection with error handling
-def add_event_detection(pin, edge, callback, bouncetime=300):
-    try:
-        GPIO.add_event_detect(pin, edge, callback=callback, bouncetime=bouncetime)
-        print(f"Successfully added edge detection for pin {pin}")
-    except RuntimeError as e:
-        print(f"Error setting up GPIO event detection on pin {pin}: {e}")
-        GPIO.cleanup()
-        exit(1)
-    except Exception as e:
-        print(f"Unexpected error setting up GPIO event detection on pin {pin}: {e}")
-        GPIO.cleanup()
-        exit(1)
+    def toggle_play(self):
+        if self.player.is_playing():
+            self.player.pause()
+            print("Toggled: Playback Paused")
+        else:
+            self.player.play()
+            print("Toggled: Playing Again")
 
-# Set up event detection for buttons and switch with longer bounce time (500 ms)
-try:
-    add_event_detection(BUTTON1_PIN, GPIO.RISING, button1_pressed, bouncetime=500)
-    add_event_detection(BUTTON2_PIN, GPIO.RISING, button2_pressed, bouncetime=500)
-    add_event_detection(BUTTON3_PIN, GPIO.RISING, button3_pressed, bouncetime=500)
-    add_event_detection(SWITCH_PIN, GPIO.BOTH, switch_pressed, bouncetime=500)
-except Exception as e:
-    print(f"Error setting up event detection: {e}")
-    GPIO.cleanup()
-    exit(1)
+    def stop(self):
+        if self.player.is_playing():
+            self.player.stop()
+            self.delete_song_file(self.currently_playing)
 
-# MQTT Configuration
-client.on_message = on_message
-client.subscribe("queue/add")
-client.loop_start()
+    def skip(self):
+        if self.player.is_playing():
+            self.player.stop()
+            self.delete_song_file(self.currently_playing)
+        self.play_next()
 
-# Main Loop
-try:
-    while True:
-        time.sleep(1)
-except KeyboardInterrupt:
-    pass
-finally:
-    GPIO.cleanup()
-    client.loop_stop()
-    stop_song()
+    def handle_end_of_song(self, event):
+        self.play_next_end()
+
+    def play_next_end(self):
+        self.delete_song_file(self.last_song)
+        self.currently_playing = self.queue.pop(0)
+        self.play_audio(self.currently_playing)
+
+    def delete_song_file(self, song):
+        file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
+        if os.path.exists(file_path):
+            retry_attempts = 3
+            for attempt in range(retry_attempts):
+                try:
+                    os.remove(file_path)
+                    print(f"Deleted '{file_path}'.")
+                    music_queue_list.pop()
+                    break
+                except PermissionError:
+                    if attempt < retry_attempts - 1:
+                        print(f"Unable to delete file on attempt {attempt + 1}. Retrying...")
+                        time.sleep(1)
+                    else:
+                        print(f"Failed to delete file after {retry_attempts} attempts.")
+
+    def print_queue_state(self):
+        if self.currently_playing or self.queue:
+            state_message = "Queue State:\n"
+            if self.currently_playing:
+                state_message += f"Currently Playing: {self.currently_playing}\n"
+            if self.queue:
+                state_message += "Upcoming: " + ", ".join(self.queue)
+            else:
+                state_message += "No upcoming songs."
+            print(state_message)
+        else:
+            print("The queue is empty.")
+
+        client.publish("queue/state", state_message, qos=0)
+
+def broadcast_queue_state():
+    for i in music_queue_list:
+        print(i)
+
+music_queue = MusicQueue()
+
+client.on_connect = on_connect
+client.username_pw_set(username, password=password)
+client.connect(broker_address, broker_port)
