@@ -19,30 +19,42 @@ def setup_gpio(pin, direction, pull_up_down=GPIO.PUD_DOWN):
     except Exception as e:
         print(f"Error setting up pin {pin}: {e}")
 
-# Load the playlist from JSON
-with open('playlists.json') as f:
-    playlists = json.load(f)
-
 # Initialize GPIO pins
 try:
-    setup_gpio(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    setup_gpio(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    setup_gpio(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    setup_gpio(BUTTON1_PIN, GPIO.IN)
+    setup_gpio(BUTTON2_PIN, GPIO.IN)
+    setup_gpio(BUTTON3_PIN, GPIO.IN)
 except Exception as e:
     print(f"Error initializing GPIO pins: {e}")
     GPIO.cleanup()
     exit(1)
 
+# Load the playlist from JSON
+with open('playlists.json') as f:
+    playlists = json.load(f)
+
+# Global Variables
+current_playlist_index = 0
+current_song_index = 0
+is_playing = False
+
 # Function to play an audio file using VLC
 def play_audio(file_path):
-    print(f"Playing {file_path}")
     player = vlc.MediaPlayer(file_path)
     player.play()
     return player
 
-# Function to handle button press events
+# Function to check button press
 def check_button_press(player):
     global current_playlist_index, current_song_index, is_playing
+    
+    # Print button states for debugging
+    print("Button 1:", GPIO.input(BUTTON1_PIN))
+    print("Button 2:", GPIO.input(BUTTON2_PIN))
+    print("Button 3:", GPIO.input(BUTTON3_PIN))
+    
+    # Print player state for debugging
+    print("Player State:", player.get_state())
     
     # Button 1: Iterate through playlists
     if not GPIO.input(BUTTON1_PIN):
@@ -68,21 +80,16 @@ def check_button_press(player):
             is_playing = True
             player.play()
 
-# Initialize global variables
-current_playlist_index = 0
-current_song_index = 0
-is_playing = False
-
 # Main loop
 try:
     player = None
     while True:
-        if player is None or player.get_state() == vlc.State.Ended:
-            current_playlist = list(playlists.keys())[current_playlist_index]
-            current_song = playlists[current_playlist][current_song_index]
-            player = play_audio(current_song)
-        check_button_press(player)
-        time.sleep(0.1)  # Small delay to reduce CPU usage
+        # Check button press
+        if player is not None:
+            check_button_press(player)
+        else:
+            print("No player initialized. Waiting for button press...")
+            time.sleep(1)
 except KeyboardInterrupt:
     pass
 finally:
