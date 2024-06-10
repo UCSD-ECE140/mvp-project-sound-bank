@@ -41,8 +41,8 @@ def play_audio(file_path):
     return player
 
 # Function to handle button press events
-def check_button_press(player):
-    global current_playlist_index, current_song_index, is_playing
+def check_button_press():
+    global current_playlist_index, current_song_index, player, is_playing
     
     # Button 1: Iterate through playlists
     if not GPIO.input(BUTTON1_PIN):
@@ -59,30 +59,42 @@ def check_button_press(player):
     
     # Button 3: Pause or Play current song
     elif not GPIO.input(BUTTON3_PIN):
-        if is_playing:
-            print("Paused")
-            is_playing = False
-            player.pause()
-        else:
-            print("Playing")
-            is_playing = True
-            player.play()
+        if player is not None:
+            if is_playing:
+                print("Paused")
+                is_playing = False
+                player.pause()
+            else:
+                print("Playing")
+                is_playing = True
+                player.play()
 
 # Initialize global variables
 current_playlist_index = 0
 current_song_index = 0
+player = None
 is_playing = False
 
 # Main loop
 try:
-    player = None
     while True:
-        if player is None or player.get_state() == vlc.State.Ended:
-            current_playlist = list(playlists.keys())[current_playlist_index]
-            current_song = playlists[current_playlist][current_song_index]
-            player = play_audio(current_song)
-        check_button_press(player)
+        current_playlist = list(playlists.keys())[current_playlist_index]
+        playlist_songs = playlists[current_playlist]
+        
+        # Ensure playlist and song indices are within range
+        if current_playlist_index < len(playlists) and current_song_index < len(playlist_songs):
+            current_song = playlist_songs[current_song_index]
+            
+            # If player is not created or song ended, create a new player
+            if player is None or player.get_state() == vlc.State.Ended:
+                player = play_audio(current_song)
+            
+            check_button_press()
+        else:
+            print("Index out of range.")
+        
         time.sleep(0.1)  # Small delay to reduce CPU usage
+
 except KeyboardInterrupt:
     pass
 finally:
