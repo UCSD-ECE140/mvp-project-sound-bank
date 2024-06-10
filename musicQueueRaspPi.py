@@ -14,7 +14,8 @@ password = os.getenv('PASSWORD')
 
 music_queue_list=[]
 
-DOWNLOAD_PATH = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
+#DOWNLOAD_PATH = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
+DOWNLOAD_PATH = r'SoundBankFiles'
 
 
 
