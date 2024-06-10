@@ -8,21 +8,20 @@ import subprocess
 
 # Define the function to run main.py
 def run_main():
-    global current_process
-    current_process = subprocess.Popen(['python3', 'main.py'])
+    os.system('python3 main.py')
 
-# Define the function to run musicQueueRaspPi.py
+# Function to run musicQueueRaspPi.py
 def run_music_queue():
     global current_process
     current_process = subprocess.Popen(['python3', 'musicQueueRaspPi.py'])
 
-# Function to switch processes
-def switch_process(new_process_function):
+# Function to stop the musicQueueRaspPi.py process
+def stop_music_queue():
     global current_process
     if current_process is not None:
         current_process.terminate()
         current_process.wait()
-    new_process_function()
+        current_process = None
 
 # GPIO Pin Definitions (Physical pin numbers)
 BUTTON1_PIN = 18
@@ -106,8 +105,9 @@ player = None
 is_playing = False
 current_process = None
 
-# Start with running main.py
-switch_process(run_main)
+# Start main.py in its own thread
+main_thread = threading.Thread(target=run_main)
+main_thread.start()
 
 # Main loop
 try:
@@ -132,10 +132,16 @@ try:
                 last_switch_state = current_switch_state
                 if current_switch_state == GPIO.LOW:
                     print("Switching to musicQueueRaspPi.py")
-                    switch_process(run_music_queue)
+                    if player is not None and player.get_state() == vlc.State.Playing:
+                        player.stop()
+                    run_music_queue()
                 else:
                     print("Switching to main.py")
-                    switch_process(run_main)
+                    stop_music_queue()
+                    # Resume playing the current song
+                    if player is not None and not is_playing:
+                        player.play()
+                        is_playing = True
                 time.sleep(1)  # Debounce delay
 
         else:
