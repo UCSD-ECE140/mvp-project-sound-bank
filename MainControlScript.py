@@ -35,10 +35,18 @@ def load_playlists():
 
 # Initialize GPIO
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(SWITCH_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+def setup_gpio(pin, direction, pull_up_down=GPIO.PUD_DOWN):
+    try:
+        GPIO.setup(pin, direction, pull_up_down=pull_up_down)
+        print(f"Successfully set up pin {pin}")
+    except Exception as e:
+        print(f"Error setting up pin {pin}: {e}")
+
+setup_gpio(SWITCH_PIN, GPIO.IN)
+setup_gpio(BUTTON1_PIN, GPIO.IN)
+setup_gpio(BUTTON2_PIN, GPIO.IN)
+setup_gpio(BUTTON3_PIN, GPIO.IN)
 
 # Initialize Playlists
 load_playlists()
@@ -121,15 +129,19 @@ def on_message(client, userdata, message):
         print(f"Error handling MQTT message: {e}")
 
 # Set up event detection with error handling
-try:
-    GPIO.add_event_detect(BUTTON1_PIN, GPIO.RISING, callback=button1_pressed, bouncetime=300)
-    GPIO.add_event_detect(BUTTON2_PIN, GPIO.RISING, callback=button2_pressed, bouncetime=300)
-    GPIO.add_event_detect(BUTTON3_PIN, GPIO.RISING, callback=button3_pressed, bouncetime=300)
-    GPIO.add_event_detect(SWITCH_PIN, GPIO.BOTH, callback=switch_pressed, bouncetime=300)
-except RuntimeError as e:
-    print(f"Error setting up GPIO event detection: {e}")
-    GPIO.cleanup()
-    exit(1)
+def add_event_detection(pin, edge, callback, bouncetime=300):
+    try:
+        GPIO.add_event_detect(pin, edge, callback=callback, bouncetime=bouncetime)
+        print(f"Successfully added edge detection for pin {pin}")
+    except RuntimeError as e:
+        print(f"Error setting up GPIO event detection on pin {pin}: {e}")
+        GPIO.cleanup()
+        exit(1)
+
+add_event_detection(BUTTON1_PIN, GPIO.RISING, button1_pressed)
+add_event_detection(BUTTON2_PIN, GPIO.RISING, button2_pressed)
+add_event_detection(BUTTON3_PIN, GPIO.RISING, button3_pressed)
+add_event_detection(SWITCH_PIN, GPIO.BOTH, switch_pressed)
 
 # MQTT Configuration
 client.on_message = on_message
