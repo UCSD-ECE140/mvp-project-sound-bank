@@ -11,7 +11,7 @@ load_dotenv()
 
 # GPIO Pin Definitions (Physical pin numbers)
 SWITCH_PIN = 12
-BUTTON1_PIN = 11
+BUTTON1_PIN = 18
 BUTTON2_PIN = 22
 BUTTON3_PIN = 13
 
