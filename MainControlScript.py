@@ -42,7 +42,7 @@ def play_audio(file_path):
 
 # Function to handle button press events
 def check_button_press():
-    global current_playlist_index, current_song_index, is_playing, player
+    global current_playlist_index, current_song_index, player
     
     # Button 1: Iterate through playlists
     if not GPIO.input(BUTTON1_PIN):
@@ -60,21 +60,16 @@ def check_button_press():
     # Button 3: Pause or Play current song
     elif not GPIO.input(BUTTON3_PIN):
         if player is not None:
-            if is_playing:
+            if player.is_playing():
                 print("Paused")
-                is_playing = False
                 player.pause()
-                time.sleep(0.5)  # Debounce delay
             else:
                 print("Playing")
-                is_playing = True
                 player.play()
-                time.sleep(0.5)  # Debounce delay
 
 # Initialize global variables
 current_playlist_index = 0
 current_song_index = 0
-is_playing = False
 player = None
 
 # Main loop
