@@ -4,6 +4,7 @@ import RPi.GPIO as GPIO
 import json
 import time
 import threading
+import subprocess
 
 # Define the function to run main.py
 def run_main():
@@ -19,6 +20,7 @@ main_thread.start()
 BUTTON1_PIN = 18
 BUTTON2_PIN = 22
 BUTTON3_PIN = 21
+SWITCH_PIN = 12  # Pin for the switch
 
 # Initialize GPIO
 GPIO.setmode(GPIO.BOARD)
@@ -39,6 +41,7 @@ try:
     setup_gpio(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     setup_gpio(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     setup_gpio(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    setup_gpio(SWITCH_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 except Exception as e:
     print(f"Error initializing GPIO pins: {e}")
     GPIO.cleanup()
@@ -90,6 +93,10 @@ def check_button_press():
                 is_playing = True
                 player.play()
 
+# Function to run mainControlScript.py
+def run_main_control_script():
+    subprocess.run(['python', 'mainControlScript.py'])
+
 # Initialize global variables
 current_playlist_index = 0
 current_song_index = 0
@@ -111,6 +118,12 @@ try:
                 player = play_audio(current_song)
             
             check_button_press()
+            
+            # Check if the switch state changes
+            if GPIO.input(SWITCH_PIN) == GPIO.LOW:
+                run_main_control_script()
+                time.sleep(1)  # Debounce delay
+            
         else:
             print("Index out of range.")
         
