@@ -18,20 +18,6 @@ def setup_gpio(pin, direction, pull_up_down=GPIO.PUD_DOWN):
     except Exception as e:
         print(f"Error setting up pin {pin}: {e}")
 
-# Initialize GPIO pins
-try:
-    setup_gpio(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Internal pull-up resistor
-    setup_gpio(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Internal pull-up resistor
-    setup_gpio(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Internal pull-up resistor
-except Exception as e:
-    print(f"Error initializing GPIO pins: {e}")
-    GPIO.cleanup()
-    exit(1)
-
-# Load the playlist from JSON
-with open('playlists.json') as f:
-    playlist = json.load(f)
-
 # Function to play songs from a playlist for a specified genre
 def play_genre(playlist, genre):
     if genre in playlist:
@@ -62,10 +48,26 @@ def button_pressed(pin):
     elif pin == BUTTON3_PIN:
         pass  # Implement functionality for button 3 if needed
 
-# Add event detection for buttons
-GPIO.add_event_detect(BUTTON1_PIN, GPIO.FALLING, callback=lambda _: button_pressed(BUTTON1_PIN), bouncetime=200)
-GPIO.add_event_detect(BUTTON2_PIN, GPIO.FALLING, callback=lambda _: button_pressed(BUTTON2_PIN), bouncetime=200)
-GPIO.add_event_detect(BUTTON3_PIN, GPIO.FALLING, callback=lambda _: button_pressed(BUTTON3_PIN), bouncetime=200)
+# Load the playlist from JSON
+with open('playlists.json') as f:
+    playlist = json.load(f)
+
+# Initialize GPIO pins and add event detection
+try:
+    # Setup GPIO pins
+    setup_gpio(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    setup_gpio(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    setup_gpio(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+    # Add event detection for buttons
+    GPIO.add_event_detect(BUTTON1_PIN, GPIO.FALLING, callback=button_pressed, bouncetime=200)
+    GPIO.add_event_detect(BUTTON2_PIN, GPIO.FALLING, callback=button_pressed, bouncetime=200)
+    GPIO.add_event_detect(BUTTON3_PIN, GPIO.FALLING, callback=button_pressed, bouncetime=200)
+
+except Exception as e:
+    print(f"Error setting up GPIO or adding event detection: {e}")
+    GPIO.cleanup()
+    exit(1)
 
 # Main loop
 try:
