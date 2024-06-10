@@ -61,6 +61,9 @@ def check_button_press():
         if player is not None and player.get_state() == vlc.State.Playing:
             player.stop()
         time.sleep(0.1)  # Small delay to ensure player is stopped
+        # Play the new song
+        current_song = playlists[current_playlist][current_song_index]
+        player = play_audio(current_song)
         
     # Button 3: Pause or Play current song
     elif not GPIO.input(BUTTON3_PIN):
