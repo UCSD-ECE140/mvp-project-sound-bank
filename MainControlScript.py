@@ -95,7 +95,7 @@ def check_button_press():
 
 # Function to run mainControlScript.py
 def run_main_control_script():
-    subprocess.run(['python', 'mainControlScript.py'])
+    subprocess.run(['python', 'musicQueueRaspPi.py'])
 
 # Initialize global variables
 current_playlist_index = 0
