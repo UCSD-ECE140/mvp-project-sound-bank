@@ -63,10 +63,12 @@ def check_button_press(player):
             print("Paused")
             is_playing = False
             player.pause()
+            time.sleep(0.5)  # Debounce delay
         else:
             print("Playing")
             is_playing = True
             player.play()
+            time.sleep(0.5)  # Debounce delay
 
 # Initialize global variables
 current_playlist_index = 0
