@@ -2,6 +2,7 @@ import os
 import vlc
 import RPi.GPIO as GPIO
 import json
+import time
 
 # GPIO Pin Definitions (Physical pin numbers)
 BUTTON1_PIN = 18
@@ -37,42 +38,36 @@ def play_audio(file_path):
         pass
     player.stop()
 
-# Function to handle button press events
-def button_pressed(pin):
-    if pin == BUTTON1_PIN:
-        selected_genre = input("Enter the genre you want to play (or 'q' to quit): ")
-        if selected_genre.lower() != 'q':
-            play_genre(playlist, selected_genre)
-    elif pin == BUTTON2_PIN:
-        pass  # Implement functionality for button 2 if needed
-    elif pin == BUTTON3_PIN:
-        pass  # Implement functionality for button 3 if needed
-
 # Load the playlist from JSON
 with open('playlists.json') as f:
     playlist = json.load(f)
 
-# Initialize GPIO pins and add event detection
+# Initialize GPIO pins
 try:
-    # Setup GPIO pins
     setup_gpio(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     setup_gpio(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     setup_gpio(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-    # Add event detection for buttons
-    GPIO.add_event_detect(BUTTON1_PIN, GPIO.FALLING, callback=button_pressed, bouncetime=200)
-    GPIO.add_event_detect(BUTTON2_PIN, GPIO.FALLING, callback=button_pressed, bouncetime=200)
-    GPIO.add_event_detect(BUTTON3_PIN, GPIO.FALLING, callback=button_pressed, bouncetime=200)
-
 except Exception as e:
-    print(f"Error setting up GPIO or adding event detection: {e}")
+    print(f"Error initializing GPIO pins: {e}")
     GPIO.cleanup()
     exit(1)
+
+# Function to handle button press events
+def check_button_press():
+    if not GPIO.input(BUTTON1_PIN):
+        selected_genre = input("Enter the genre you want to play (or 'q' to quit): ")
+        if selected_genre.lower() != 'q':
+            play_genre(playlist, selected_genre)
+    elif not GPIO.input(BUTTON2_PIN):
+        pass  # Implement functionality for button 2 if needed
+    elif not GPIO.input(BUTTON3_PIN):
+        pass  # Implement functionality for button 3 if needed
 
 # Main loop
 try:
     while True:
-        pass  # Keep the program running
+        check_button_press()
+        time.sleep(0.1)  # Small delay to reduce CPU usage
 except KeyboardInterrupt:
     pass
 finally:
