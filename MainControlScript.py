@@ -58,6 +58,9 @@ def check_button_press():
         current_song_index = (current_song_index + 1) % len(playlists[current_playlist])
         print("Switched to Song:", playlists[current_playlist][current_song_index])
         time.sleep(0.5)  # Debounce delay
+        # Stop current player if it's playing
+        if player is not None and player.get_state() == vlc.State.Playing:
+            player.stop()
     
     # Button 3: Pause or Play current song
     elif not GPIO.input(BUTTON3_PIN):
@@ -90,11 +93,6 @@ try:
             # If player is not created or song ended, create a new player
             if player is None or player.get_state() == vlc.State.Ended:
                 player = play_audio(current_song)
-            elif player.get_state() == vlc.State.Playing:
-                # If song changed, stop the current player and play the new one
-                if player.get_media().get_mrl() != current_song:
-                    player.stop()
-                    player = play_audio(current_song)
             
             check_button_press()
         else:
