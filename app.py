@@ -136,6 +136,20 @@ async def queue_add(request: Request):
         return {"message": "Song added to the queue"}
     else:
         return {"message": "No song provided"}
+    
+
+@app.post("/queue_command")
+async def queue_command(request: Request):
+    data = await request.json()
+    command = data.get("command")
+    print(command)
+
+    if command:
+        client.publish("queue/commands", payload=command, qos=1)
+        time.sleep(3)
+        return {"message": "command sent"}
+    else:
+        return {"message": "No command provided"}
 
 if __name__ == '__main__':
     load_dotenv()

@@ -11,7 +11,7 @@ broker_address = os.getenv('BROKER_ADDRESS')
 broker_port = int(os.getenv('BROKER_PORT'))
 username = os.getenv('USER_NAME')
 password = os.getenv('PASSWORD')
-DOWNLOAD_PATH = r'C:\\Users\\maxdg\\PycharmProjects\\ee140\\mvp-project-sound-bank\\song_folder'
+DOWNLOAD_PATH = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
 
 def get_first_audio_stream(song_query):
     try:
@@ -87,13 +87,17 @@ class MusicQueue:
 
     def play_next(self):
         if self.queue:
+            print("insplayself"+ self.queue[0])
             # Ensure the previous song file is deleted if it exists
             if self.currently_playing is not None :
+                print(self.currently_playing)
                 self.delete_song_file(self.currently_playing)
             self.currently_playing = self.queue.pop(0)
+            print(self.currently_playing)
             self.download_and_play(self.currently_playing)
             self.print_queue_state()
         else:
+            print("kakakak")
             self.currently_playing = None
             self.print_queue_state()
 

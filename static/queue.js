@@ -1,7 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {    
     const queueButton = document.getElementById('queue-btn');
     const searchInput = document.getElementById('search-input');
-    console.log("queueButton")
+    const togglePlayButton = document.getElementById('togglePlayBtn')
+    const skipButton = document.getElementById('skipBtn')
+    const rewindButton = document.getElementById('rewindBtn')
+    console.log(togglePlayButton)
 
 
     function populateMusicList(musicData) {
@@ -66,4 +69,62 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    togglePlayButton.addEventListener('click', function() {
+        console.log("play pressed")
+        fetch('/queue_command', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ command: "toggle_play" })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            // Optionally, you can display a success message to the user
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Optionally, you can display an error message to the user
+        });
+    });
+
+    skipButton.addEventListener('click', function() {
+        fetch('/queue_command', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ command: "skip" })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            // Optionally, you can display a success message to the user
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Optionally, you can display an error message to the user
+        });
+    });
+
+    rewindButton.addEventListener('click', function() {
+        fetch('/queue_command', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ command: "rewind" })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            // Optionally, you can display a success message to the user
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Optionally, you can display an error message to the user
+        });
+        
+    });
 });
