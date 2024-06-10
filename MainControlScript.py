@@ -59,16 +59,17 @@ def check_button_press():
     
     # Button 3: Pause or Play current song
     elif not GPIO.input(BUTTON3_PIN):
-        if is_playing:
-            print("Paused")
-            is_playing = False
-            player.pause()
-            time.sleep(0.5)  # Debounce delay
-        else:
-            print("Playing")
-            is_playing = True
-            player.play()
-            time.sleep(0.5)  # Debounce delay
+        if player is not None:
+            if is_playing:
+                print("Paused")
+                is_playing = False
+                player.pause()
+                time.sleep(0.5)  # Debounce delay
+            else:
+                print("Playing")
+                is_playing = True
+                player.play()
+                time.sleep(0.5)  # Debounce delay
 
 # Initialize global variables
 current_playlist_index = 0
@@ -80,13 +81,20 @@ player = None
 try:
     while True:
         current_playlist = list(playlists.keys())[current_playlist_index]
-        current_song = playlists[current_playlist][current_song_index]
+        playlist_songs = playlists[current_playlist]
         
-        # If player is not created or song ended, create a new player
-        if player is None or player.get_state() == vlc.State.Ended:
-            player = play_audio(current_song)
+        # Ensure playlist and song indices are within range
+        if current_playlist_index < len(playlists) and current_song_index < len(playlist_songs):
+            current_song = playlist_songs[current_song_index]
+            
+            # If player is not created or song ended, create a new player
+            if player is None or player.get_state() == vlc.State.Ended:
+                player = play_audio(current_song)
+            
+            check_button_press()
+        else:
+            print("Index out of range.")
         
-        check_button_press()
         time.sleep(0.1)  # Small delay to reduce CPU usage
 
 except KeyboardInterrupt:
