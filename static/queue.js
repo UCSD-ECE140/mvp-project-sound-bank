@@ -4,21 +4,33 @@ document.addEventListener("DOMContentLoaded", () => {
     const togglePlayButton = document.getElementById('togglePlayBtn')
     const skipButton = document.getElementById('skipBtn')
     const rewindButton = document.getElementById('rewindBtn')
+    const refreshButton = document.getElementById('refreshBtn')
+
+    fetchQueueData()
     console.log(togglePlayButton)
 
 
-    function populateMusicList(musicData) {
+    function populateMusicList(queueData) {
         const musicList = document.getElementById('music-list');
         musicList.innerHTML = '';
     
-        musicData.forEach(music => {
-            const [_, artist, songName, year] = music.split(',');
-            if (artist && songName && year) {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${artist} - ${songName} (${year})`;
-                musicList.appendChild(listItem);
-            }
+        queueData.forEach(song => {
+            const listItem = document.createElement('li');
+            listItem.textContent = song;
+            musicList.appendChild(listItem);
         });
+    }
+
+    function fetchQueueData() {
+        fetch('/queue')
+            .then(response => response.json())
+            .then(data => {
+                console.log(data)
+                populateMusicList(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
     }
 
 
@@ -38,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     datalist.appendChild(option);
                 }
             });
-            populateMusicList(musicData);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -107,6 +118,10 @@ document.addEventListener("DOMContentLoaded", () => {
             // Optionally, you can display an error message to the user
         });
     });
+
+    refreshButton.addEventListener('click', function() {
+        fetchQueueData()
+    })
 
     rewindButton.addEventListener('click', function() {
         fetch('/queue_command', {

@@ -11,6 +11,8 @@ import time
 
 app = FastAPI()
 app.mount('/static', StaticFiles(directory='static'), name='static')
+queue_list=[]
+
 
 def on_connect(client, userdata, flags, rc, properties=None):
     """
@@ -22,15 +24,6 @@ def on_connect(client, userdata, flags, rc, properties=None):
         :param properties: can be used in MQTTv5, but is optional
     """
     print("CONNACK received with code %s." % rc)
-
-def on_message(client, userdata, msg):
-    """
-    Prints a mqtt message to stdout (used as callback for subscribe).
-    :param client: the client itself
-    :param userdata: userdata is set when initiating the client, here it is userdata=None
-    :param msg: the message with topic and payload
-    """
-    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
 
 
 # with this callback you can see if your publish was successful
@@ -80,15 +73,19 @@ async def get_playlists():
         return JSONResponse(content=[])
 
 def on_message(client, userdata, msg):
+    global queue_list
     """
         Prints a mqtt message to stdout ( used as callback for subscribe )
         :param client: the client itself
         :param userdata: userdata is set when initiating the client, here it is userdata=None
         :param msg: the message with topic and payload
     """
-    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+    print("heyyyyy")
+    print(msg.topic)
 
-
+    if(msg.topic=="queue/state"):
+        
+        queue_list=json.loads(msg.payload)
 
 
 @app.get("/")
@@ -123,12 +120,15 @@ async def download_add(request: Request):
     else:
         return {"message": "Playlist or song not provided"}
 
+@app.get("/queue")
+async def get_queue():
+    
+    return JSONResponse(content=queue_list)
 
 @app.post("/queue_add")
 async def queue_add(request: Request):
     data = await request.json()
     song = data.get("song")
-    print(song)
 
     if song:
         client.publish("queue/songs", payload=song, qos=1)
@@ -182,7 +182,8 @@ if __name__ == '__main__':
     client_sub.on_publish = on_publish
 
     # subscribe to all topics of numbers by using the wildcard "#"
-    client_sub.subscribe("songs/#", qos=1)
+    
+    client_sub.subscribe("queue/#", qos=0)
 
     time.sleep(3)
 
