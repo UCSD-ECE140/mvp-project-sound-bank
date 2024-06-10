@@ -11,7 +11,7 @@ import time
 
 app = FastAPI()
 app.mount('/static', StaticFiles(directory='static'), name='static')
-queue_list=[]
+queue_list=''
 
 
 def on_connect(client, userdata, flags, rc, properties=None):
@@ -80,12 +80,12 @@ def on_message(client, userdata, msg):
         :param userdata: userdata is set when initiating the client, here it is userdata=None
         :param msg: the message with topic and payload
     """
-    print("heyyyyy")
-    print(msg.topic)
 
+    print(msg.topic)
     if(msg.topic=="queue/state"):
-        
-        queue_list=json.loads(msg.payload)
+        print(msg.payload)
+        message=json.loads(msg.payload)
+        queue_list=message
 
 
 @app.get("/")
@@ -122,6 +122,9 @@ async def download_add(request: Request):
 
 @app.get("/queue")
 async def get_queue():
+
+    print("fuckshit")
+    print(queue_list)
     
     return JSONResponse(content=queue_list)
 

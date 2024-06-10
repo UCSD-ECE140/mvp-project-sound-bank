@@ -13,6 +13,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function populateMusicList(queueData) {
         const musicList = document.getElementById('music-list');
         musicList.innerHTML = '';
+
+        queueData=queueData.split(';')
     
         queueData.forEach(song => {
             const listItem = document.createElement('li');
