@@ -95,11 +95,14 @@ def check_button_press():
 
 # Function to run mainControlScript.py
 def run_main_control_script():
-    subprocess.run(['python', 'musicQueueRaspPi.py'])
-
-# Function to stop main.py thread and stop playing songs
-def stop_main():
-    os.system('pkill -f main.py')
+    global player, main_thread
+    
+    # Stop main.py thread
+    main_thread.join()
+    os.system('python musicQueueRaspPi.py')
+    # Restart main.py thread
+    main_thread = threading.Thread(target=run_main)
+    main_thread.start()
 
 # Initialize global variables
 current_playlist_index = 0
@@ -107,26 +110,9 @@ current_song_index = 0
 player = None
 is_playing = False
 
-# Flag to keep track of current mode (main.py or mainControlScript.py)
-is_main_running = True
-
 # Main loop
 try:
     while True:
-        # Check if the switch state changes
-        if GPIO.input(SWITCH_PIN) == GPIO.LOW:
-            if is_main_running:
-                # Switching to mainControlScript.py
-                stop_main()  # Stop main.py thread
-                is_main_running = False
-                run_main_control_script()  # Run mainControlScript.py
-            else:
-                # Switching back to main.py
-                is_main_running = True
-                main_thread = threading.Thread(target=run_main)  # Restart main.py thread
-                main_thread.start()
-            time.sleep(1)  # Debounce delay
-
         current_playlist = list(playlists.keys())[current_playlist_index]
         playlist_songs = playlists[current_playlist]
         
@@ -139,6 +125,11 @@ try:
                 player = play_audio(current_song)
             
             check_button_press()
+            
+            # Check if the switch state changes
+            if GPIO.input(SWITCH_PIN) == GPIO.LOW:
+                run_main_control_script()
+                time.sleep(1)  # Debounce delay
             
         else:
             print("Index out of range.")
