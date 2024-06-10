@@ -120,11 +120,16 @@ def on_message(client, userdata, message):
     except Exception as e:
         print(f"Error handling MQTT message: {e}")
 
-# Set up event detection
-GPIO.add_event_detect(BUTTON1_PIN, GPIO.RISING, callback=button1_pressed, bouncetime=300)
-GPIO.add_event_detect(BUTTON2_PIN, GPIO.RISING, callback=button2_pressed, bouncetime=300)
-GPIO.add_event_detect(BUTTON3_PIN, GPIO.RISING, callback=button3_pressed, bouncetime=300)
-GPIO.add_event_detect(SWITCH_PIN, GPIO.BOTH, callback=switch_pressed, bouncetime=300)
+# Set up event detection with error handling
+try:
+    GPIO.add_event_detect(BUTTON1_PIN, GPIO.RISING, callback=button1_pressed, bouncetime=300)
+    GPIO.add_event_detect(BUTTON2_PIN, GPIO.RISING, callback=button2_pressed, bouncetime=300)
+    GPIO.add_event_detect(BUTTON3_PIN, GPIO.RISING, callback=button3_pressed, bouncetime=300)
+    GPIO.add_event_detect(SWITCH_PIN, GPIO.BOTH, callback=switch_pressed, bouncetime=300)
+except RuntimeError as e:
+    print(f"Error setting up GPIO event detection: {e}")
+    GPIO.cleanup()
+    exit(1)
 
 # MQTT Configuration
 client.on_message = on_message
