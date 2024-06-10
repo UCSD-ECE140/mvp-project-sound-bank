@@ -1,5 +1,6 @@
 import os
 import threading
+import json
 import vlc
 import time
 import paho.mqtt.client as paho
@@ -21,11 +22,11 @@ password = os.getenv('PASSWORD')
 music_queue_list=[]
 
 #DOWNLOAD_PATH = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
-DOWNLOAD_PATH = r'SoundBankFiles'
+#DOWNLOAD_PATH = r'QueueFiles'
 
 #
-# DOWNLOAD_PATH = r'C:\\Users\\maxdg\\PycharmProjects\\ee140\\mvp-project-sound-bank\\song_folder'
-# #DOWNLOAD_PATH = r'SoundBankQueue'
+#DOWNLOAD_PATH = r'C:\\Users\\maxdg\\PycharmProjects\\ee140\\mvp-project-sound-bank\\song_folder'
+DOWNLOAD_PATH = r'SoundBankQueue'
 
 def get_first_audio_stream(song_query):
     try:
@@ -108,7 +109,7 @@ class MusicQueue:
         print(f"Added '{song}' to the queue.")
         self.download_song(song)
         #download immediately instead
-        self.print_queue_state()
+        self.publish_queue_state()
         if not self.currently_playing:
             self.play_next()
 
@@ -124,11 +125,11 @@ class MusicQueue:
             #self.download_and_play(self.currently_playing)
             self.play_audio(self.currently_playing)
             self.last_song = self.currently_playing
-            self.print_queue_state()
+            self.publish_queue_state()
         else:
             print("No songs")
             self.currently_playing = None
-            self.print_queue_state()
+            self.publish_queue_state()
 
     def download_and_play(self, song):
         file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
@@ -229,20 +230,22 @@ class MusicQueue:
                     else:
                         print(f"Failed to delete file after {retry_attempts} attempts.")
 
-    def print_queue_state(self):
-        if self.currently_playing or self.queue:
-            state_message = "Queue State:\n"
-            if self.currently_playing:
-                state_message += f"Currently Playing: {self.currently_playing}\n"
-            if self.queue:
-                state_message += "Upcoming: " + ", ".join(self.queue)
-            else:
-                state_message += "No upcoming songs."
-            print(state_message)
+    def publish_queue_state(self):
+        # Initialize the string with the currently playing song if it exists
+        if self.currently_playing:
+            queue_state = self.currently_playing
         else:
-            print("The queue is empty.")
+            queue_state = "No song currently playing"
 
-        client.publish("queue/state", state_message, qos=0)
+        # Append upcoming songs with semicolon separation
+        if self.queue:
+            if self.currently_playing:  # Add a semicolon only if there's a currently playing song
+                queue_state += ";"
+            queue_state += ";".join(self.queue)
+
+        encoded_list = json.dumps(queue_state)
+        # Publish the song titles as a single string
+        client.publish("queue/state", encoded_list, qos=0)
 
 
 def broadcast_queue_state():
