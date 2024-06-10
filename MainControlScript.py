@@ -95,7 +95,7 @@ def check_button_press():
 
 # Function to run mainControlScript.py
 def run_main_control_script():
-    subprocess.run(['python', 'mainControlScript.py'])
+    subprocess.run(['python', 'musicQueueRaspPi.py'])
 
 # Function to stop main.py thread and stop playing songs
 def stop_main():
