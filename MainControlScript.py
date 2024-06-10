@@ -34,7 +34,7 @@ def load_playlists():
         print(f"Error loading playlists: {e}")
 
 # Initialize GPIO
-GPIO.setmode(GPIO.BCM)
+GPIO.setmode(GPIO.BOARD)
 
 def setup_gpio(pin, direction, pull_up_down=GPIO.PUD_DOWN):
     try:
