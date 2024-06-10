@@ -11,9 +11,9 @@ load_dotenv()
 
 # GPIO Pin Definitions
 SWITCH_PIN = 12
-BUTTON1_PIN = 27
+BUTTON1_PIN = 11
 BUTTON2_PIN = 22
-BUTTON3_PIN = 23
+BUTTON3_PIN = 13
 
 # Global Variables
 current_playlist_index = 0
