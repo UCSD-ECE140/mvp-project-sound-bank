@@ -9,11 +9,11 @@ import paho.mqtt.client as paho
 # Load environment variables
 load_dotenv()
 
-# GPIO Pin Definitions
+# GPIO Pin Definitions (Physical pin numbers)
 SWITCH_PIN = 12
-BUTTON1_PIN = 27
+BUTTON1_PIN = 18
 BUTTON2_PIN = 22
-BUTTON3_PIN = 23
+BUTTON3_PIN = 13
 
 # Global Variables
 current_playlist_index = 0
@@ -34,14 +34,28 @@ def load_playlists():
         print(f"Error loading playlists: {e}")
 
 # Initialize GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(SWITCH_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setmode(GPIO.BOARD)
+
+def setup_gpio(pin, direction, pull_up_down=GPIO.PUD_DOWN):
+    try:
+        GPIO.setup(pin, direction, pull_up_down=pull_up_down)
+        print(f"Successfully set up pin {pin}")
+    except Exception as e:
+        print(f"Error setting up pin {pin}: {e}")
 
 # Initialize Playlists
 load_playlists()
+
+# Initialize GPIO pins
+try:
+    setup_gpio(SWITCH_PIN, GPIO.IN)
+    setup_gpio(BUTTON1_PIN, GPIO.IN)
+    setup_gpio(BUTTON2_PIN, GPIO.IN)
+    setup_gpio(BUTTON3_PIN, GPIO.IN)
+except Exception as e:
+    print(f"Error initializing GPIO pins: {e}")
+    GPIO.cleanup()
+    exit(1)
 
 # MQTT Client Configuration
 broker_address = os.environ.get('BROKER_ADDRESS')
@@ -51,22 +65,32 @@ password = os.environ.get('PASSWORD')
 
 client = paho.Client()
 client.username_pw_set(username, password)
-client.connect(broker_address, broker_port)
+try:
+    client.connect(broker_address, broker_port)
+except Exception as e:
+    print(f"Error connecting to MQTT broker: {e}")
+    exit(1)
 
 # Play Song
 def play_song(song_path):
     global current_script, is_playing
     stop_song()
-    current_script = subprocess.Popen(['vlc', song_path])
-    is_playing = True
+    try:
+        current_script = subprocess.Popen(['vlc', song_path])
+        is_playing = True
+    except Exception as e:
+        print(f"Error playing song: {e}")
 
 # Stop Song
 def stop_song():
     global current_script, is_playing
-    if current_script is not None:
-        current_script.terminate()
-        current_script = None
-        is_playing = False
+    try:
+        if current_script is not None:
+            current_script.terminate()
+            current_script = None
+            is_playing = False
+    except Exception as e:
+        print(f"Error stopping song: {e}")
 
 # Button Handlers
 def button1_pressed(channel):
@@ -120,11 +144,30 @@ def on_message(client, userdata, message):
     except Exception as e:
         print(f"Error handling MQTT message: {e}")
 
-# Set up event detection
-GPIO.add_event_detect(BUTTON1_PIN, GPIO.RISING, callback=button1_pressed, bouncetime=300)
-GPIO.add_event_detect(BUTTON2_PIN, GPIO.RISING, callback=button2_pressed, bouncetime=300)
-GPIO.add_event_detect(BUTTON3_PIN, GPIO.RISING, callback=button3_pressed, bouncetime=300)
-GPIO.add_event_detect(SWITCH_PIN, GPIO.BOTH, callback=switch_pressed, bouncetime=300)
+# Set up event detection with error handling
+def add_event_detection(pin, edge, callback, bouncetime=300):
+    try:
+        GPIO.add_event_detect(pin, edge, callback=callback, bouncetime=bouncetime)
+        print(f"Successfully added edge detection for pin {pin}")
+    except RuntimeError as e:
+        print(f"Error setting up GPIO event detection on pin {pin}: {e}")
+        GPIO.cleanup()
+        exit(1)
+    except Exception as e:
+        print(f"Unexpected error setting up GPIO event detection on pin {pin}: {e}")
+        GPIO.cleanup()
+        exit(1)
+
+# Set up event detection for buttons and switch with longer bounce time (500 ms)
+try:
+    add_event_detection(BUTTON1_PIN, GPIO.RISING, button1_pressed, bouncetime=500)
+    add_event_detection(BUTTON2_PIN, GPIO.RISING, button2_pressed, bouncetime=500)
+    add_event_detection(BUTTON3_PIN, GPIO.RISING, button3_pressed, bouncetime=500)
+    add_event_detection(SWITCH_PIN, GPIO.BOTH, switch_pressed, bouncetime=500)
+except Exception as e:
+    print(f"Error setting up event detection: {e}")
+    GPIO.cleanup()
+    exit(1)
 
 # MQTT Configuration
 client.on_message = on_message
