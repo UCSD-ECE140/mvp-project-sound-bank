@@ -38,7 +38,6 @@ def play_audio(file_path):
     print(f"Playing {file_path}")
     player = vlc.MediaPlayer(file_path)
     player.play()
-    time.sleep(0.1)  # Delay to allow VLC to initialize
     return player
 
 # Function to handle button press events
@@ -61,7 +60,8 @@ def check_button_press():
         # Stop current player if it's playing
         if player is not None and player.get_state() == vlc.State.Playing:
             player.stop()
-    
+        time.sleep(0.1)  # Small delay to ensure player is stopped
+        
     # Button 3: Pause or Play current song
     elif not GPIO.input(BUTTON3_PIN):
         if player is not None:
