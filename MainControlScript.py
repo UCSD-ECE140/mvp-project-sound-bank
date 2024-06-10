@@ -44,7 +44,7 @@ def setup_gpio(pin, direction, pull_up_down=GPIO.PUD_DOWN):
         print(f"Error setting up pin {pin}: {e}")
 
 setup_gpio(SWITCH_PIN, GPIO.IN)
-setup_gpio(BUTTON1_PIN, GPIO.IN)
+# setup_gpio(BUTTON1_PIN, GPIO.IN)
 setup_gpio(BUTTON2_PIN, GPIO.IN)
 setup_gpio(BUTTON3_PIN, GPIO.IN)
 
@@ -138,7 +138,7 @@ def add_event_detection(pin, edge, callback, bouncetime=300):
         GPIO.cleanup()
         exit(1)
 
-add_event_detection(BUTTON1_PIN, GPIO.RISING, button1_pressed)
+# add_event_detection(BUTTON1_PIN, GPIO.RISING, button1_pressed)
 add_event_detection(BUTTON2_PIN, GPIO.RISING, button2_pressed)
 add_event_detection(BUTTON3_PIN, GPIO.RISING, button3_pressed)
 add_event_detection(SWITCH_PIN, GPIO.BOTH, switch_pressed)
