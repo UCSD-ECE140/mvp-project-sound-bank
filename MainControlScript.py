@@ -3,7 +3,18 @@ import vlc
 import RPi.GPIO as GPIO
 import json
 import time
+import threading
 
+# Define the function to run main.py
+def run_main():
+    os.system('python main.py')
+
+# Create a thread to run main.py
+main_thread = threading.Thread(target=run_main)
+main_thread.start()
+
+# Rest of your code...
+# (Replace this with your existing code)
 # GPIO Pin Definitions (Physical pin numbers)
 BUTTON1_PIN = 18
 BUTTON2_PIN = 22
@@ -33,6 +44,8 @@ except Exception as e:
     GPIO.cleanup()
     exit(1)
 
+# Rest of your code...
+# (Replace this with your existing code)
 # Function to play an audio file using VLC
 def play_audio(file_path):
     print(f"Playing {file_path}")
