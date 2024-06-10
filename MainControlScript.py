@@ -20,13 +20,17 @@ def setup_gpio(pin, direction, pull_up_down=GPIO.PUD_DOWN):
 
 # Initialize GPIO pins
 try:
-    setup_gpio(BUTTON1_PIN, GPIO.IN)
-    setup_gpio(BUTTON2_PIN, GPIO.IN)
-    setup_gpio(BUTTON3_PIN, GPIO.IN)
+    setup_gpio(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Internal pull-up resistor
+    setup_gpio(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Internal pull-up resistor
+    setup_gpio(BUTTON3_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Internal pull-up resistor
 except Exception as e:
     print(f"Error initializing GPIO pins: {e}")
     GPIO.cleanup()
     exit(1)
+
+# Load the playlist from JSON
+with open('playlists.json') as f:
+    playlist = json.load(f)
 
 # Function to play songs from a playlist for a specified genre
 def play_genre(playlist, genre):
@@ -43,13 +47,9 @@ def play_audio(file_path):
     player = vlc.MediaPlayer(file_path)
     player.play()
     # Wait for the song to finish playing
-    while player.is_playing():
+    while player.get_state() != vlc.State.Ended:
         pass
     player.stop()
-
-# Load the playlist from JSON
-with open('playlists.json') as f:
-    playlist = json.load(f)
 
 # Function to handle button press events
 def button_pressed(pin):
@@ -61,6 +61,11 @@ def button_pressed(pin):
         pass  # Implement functionality for button 2 if needed
     elif pin == BUTTON3_PIN:
         pass  # Implement functionality for button 3 if needed
+
+# Add event detection for buttons
+GPIO.add_event_detect(BUTTON1_PIN, GPIO.FALLING, callback=lambda _: button_pressed(BUTTON1_PIN), bouncetime=200)
+GPIO.add_event_detect(BUTTON2_PIN, GPIO.FALLING, callback=lambda _: button_pressed(BUTTON2_PIN), bouncetime=200)
+GPIO.add_event_detect(BUTTON3_PIN, GPIO.FALLING, callback=lambda _: button_pressed(BUTTON3_PIN), bouncetime=200)
 
 # Main loop
 try:
