@@ -62,14 +62,21 @@ def on_message(client, userdata, msg):
             print("Playback stopped")
         elif command == 'skip':
             music_queue.skip()
+        elif command == 'next':
+            music_queue.play_next()
 
 class MusicQueue:
     def __init__(self):
         self.queue = []
         self.currently_playing = None
+        self.last_song = None  # Reference to the last song played
         self.player = vlc.MediaPlayer()
         self.player_events = self.player.event_manager()
         self.player_events.event_attach(vlc.EventType.MediaPlayerEndReached, self.handle_end_of_song)
+        #I want to add a reference to self.last_song so that I can use it before handle_end_of_song
+        #I think if i then reference it in handle_end_of_Song i need to be abel to access the path
+        #and I need it to be moving to the next song so I need the system to not delete the next song up
+        #
     def move_song(self, current_index, new_index):
         """Move a song in the queue from current_index to new_index."""
         if 0 <= current_index < len(self.queue) and 0 <= new_index < len(self.queue):
@@ -81,6 +88,8 @@ class MusicQueue:
     def add_song(self, song):
         self.queue.append(song)
         print(f"Added '{song}' to the queue.")
+        self.download_song(song)
+        #download immediately instead
         self.print_queue_state()
         if not self.currently_playing:
             self.play_next()
@@ -89,15 +98,19 @@ class MusicQueue:
         if self.queue:
             print("insplayself"+ self.queue[0])
             # Ensure the previous song file is deleted if it exists
+            print("queue exists")
             if self.currently_playing is not None :
                 print(self.currently_playing)
+                print("deleting old song")
                 self.delete_song_file(self.currently_playing)
+            print("popping")
             self.currently_playing = self.queue.pop(0)
-            print(self.currently_playing)
-            self.download_and_play(self.currently_playing)
+            #self.download_and_play(self.currently_playing)
+            self.play_audio(self.currently_playing)
+            self.last_song = self.currently_playing
             self.print_queue_state()
         else:
-            print("kakakak")
+            print("No songs")
             self.currently_playing = None
             self.print_queue_state()
 
@@ -106,6 +119,7 @@ class MusicQueue:
         if not os.path.exists(file_path):
             self.download_song(song)
         self.play_audio(song)
+        self.last_song = self.currently_playing
 
     def download_song(self, song):
         audio_stream = get_first_audio_stream(song)
@@ -116,8 +130,11 @@ class MusicQueue:
             print(f"Failed to download '{song}'.")
 
     def play_audio(self, song):
+        print("in play_audio")
         file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
+        print("file path joined: " + file_path)
         self.player.set_media(vlc.Media(file_path))
+        print("sent filepath to media player")
         self.player.play()
         print(f"Now playing '{song}'.")
 
@@ -139,15 +156,32 @@ class MusicQueue:
 
     def handle_end_of_song(self, event):
         print("Current song ended: W")
-        self.play_next()
+        self.play_next_end()
+
+    def play_next_end(self):
+        #delete old song:
+        print("about to delete the old song")
+        print(self.last_song)
+        self.delete_song_file(self.last_song)
+        print("deleted song that was just done playing: " + self.last_song)
+        #call play next in a way that doesnt fuck the system
+        self.currently_playing = self.queue.pop(0)
+        print(self.currently_playing)
+        #hopefully this works and doesnt shit the bed
+        self.play_audio(self.currently_playing)
 
     def delete_song_file(self, song):
         file_path = os.path.join(DOWNLOAD_PATH, song + '.mp4')
+        print(file_path)
         if os.path.exists(file_path):
-            self.player.stop()  # Ensure VLC is not using the file
+            print("lalalal")
+            # self.player.stop()  # Ensure VLC is not using the file
+            # print("stopped player")
             retry_attempts = 3
             for attempt in range(retry_attempts):
+                print("Retrying: " + str(attempt))
                 try:
+                    print("first try os file remove")
                     os.remove(file_path)
                     print(f"Deleted '{file_path}'.")
                     break

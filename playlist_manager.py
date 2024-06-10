@@ -1,14 +1,15 @@
 import os
 import json
-from pytube import Search, YouTube
 from dotenv import load_dotenv
 import paho.mqtt.client as paho
+from pytube import Search, YouTube
 from paho import mqtt
-import time
 
+# Load .env variables
+load_dotenv()
 
 # Path to the directory containing the songs
-songs_directory = r'C:\Users\mtyse\Documents\ece140\ECE140B\Tech2\mvp-project-sound-bank\soundbankfiles'
+songs_directory = r'C:\Users\Nehemiah Skandera\Desktop\ECE140B\Spotipy\mvp-project-sound-bank\SoundBankFiles'
 # Path to the playlists file
 playlists_file = 'playlists.json'
 
@@ -46,25 +47,6 @@ def download_song(song_query):
         return song_path
     return None
 
-# Function to handle instruction strings
-def handle_instruction(instruction):
-    try:
-        playlist_name, song_title = instruction.split('", "')
-        playlist_name = playlist_name.strip('"')
-        song_title = song_title.strip('"')
-        song_path = os.path.join(songs_directory, song_title + ".mp4")
-        
-        if not os.path.exists(song_path):
-            print(f"Song '{song_title}' not found locally. Downloading...")
-            song_path = download_song(song_title)
-        
-        if song_path:
-            add_song_to_playlist(playlist_name, song_path)
-        else:
-            print(f"Failed to download song '{song_title}'.")
-    except ValueError:
-        print("Invalid instruction format. Use '\"PlaylistName\", \"SongTitle\"'.")
-
 def on_connect(client, userdata, flags, rc, properties=None):
     print("CONNACK received with code %s." % rc)
     client.subscribe("songs/add")
@@ -77,7 +59,6 @@ def on_subscribe(client, userdata, mid, granted_qos, properties=None):
 
 def on_message(client, userdata, msg):
     payload = msg.payload.decode('utf-8')
-    print(payload+"messafefefefe")
     try:
         playlist_name, song_title = payload.split(', ')
         playlist_name = playlist_name.strip('"')
@@ -90,8 +71,7 @@ def on_message(client, userdata, msg):
     except ValueError:
         print("Invalid instruction format. Use '\"PlaylistName\", \"SongTitle\".'")
 
-# Example usage: Add song to playlist based on instruction string
-if __name__ == "__main__":
+if __name__ == '__main__':
     load_dotenv()
 
     broker_address = os.environ.get('BROKER_ADDRESS')
@@ -104,7 +84,6 @@ if __name__ == "__main__":
     client.on_message = on_message
     client.on_publish = on_publish
     client.on_subscribe = on_subscribe
-
 
     client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
     client.username_pw_set(username, password)
