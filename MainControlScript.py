@@ -6,26 +6,16 @@ import time
 import threading
 import subprocess
 
-# Function to run main.py
+# Define the function to run main.py
 def run_main():
-    os.system('python3 main.py')
+    os.system('python main.py')
 
-# Function to run mainControlScript.py
-def run_main_control_script():
-    os.system('python3 mainControlScript.py')
+# Create a thread to run main.py
+main_thread = threading.Thread(target=run_main)
+main_thread.start()
 
-# Global variable to hold the current process
-current_process = None
-
-# Function to switch processes
-def switch_process(new_process_function):
-    global current_process
-    if current_process is not None:
-        current_process.terminate()
-        current_process.join()
-    current_process = threading.Thread(target=new_process_function)
-    current_process.start()
-
+# Rest of your code...
+# (Replace this with your existing code)
 # GPIO Pin Definitions (Physical pin numbers)
 BUTTON1_PIN = 18
 BUTTON2_PIN = 22
@@ -57,6 +47,8 @@ except Exception as e:
     GPIO.cleanup()
     exit(1)
 
+# Rest of your code...
+# (Replace this with your existing code)
 # Function to play an audio file using VLC
 def play_audio(file_path):
     print(f"Playing {file_path}")
@@ -101,14 +93,22 @@ def check_button_press():
                 is_playing = True
                 player.play()
 
+# Function to run mainControlScript.py
+def run_main_control_script():
+    global player, main_thread
+    
+    # Stop main.py thread
+    main_thread.join()
+    os.system('python musicQueueRaspPi.py')
+    # Restart main.py thread
+    main_thread = threading.Thread(target=run_main)
+    main_thread.start()
+
 # Initialize global variables
 current_playlist_index = 0
 current_song_index = 0
 player = None
 is_playing = False
-
-# Start with running main.py
-switch_process(run_main)
 
 # Main loop
 try:
@@ -128,12 +128,9 @@ try:
             
             # Check if the switch state changes
             if GPIO.input(SWITCH_PIN) == GPIO.LOW:
-                switch_process(run_main_control_script)
+                run_main_control_script()
                 time.sleep(1)  # Debounce delay
-            else:
-                switch_process(run_main)
-                time.sleep(1)  # Debounce delay
-
+            
         else:
             print("Index out of range.")
         
